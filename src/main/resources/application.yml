@@ -1,0 +1,38 @@
+server:
+  port: 8088
+  servlet:
+    session:
+      timeout: PT360M
+
+logging:
+  level:
+     prism.akash.dataInteraction: debug
+
+spring:
+  application:
+    name: Akash-System
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://10.176.242.42:3306/testAkash?characterEncoding=utf8&useSSL=false
+    username: root
+    password: Hello@7.8
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      filters: stat,wall,log4j,config
+      max-active: 100
+      initial-size: 1
+      max-wait: 60000
+      min-idle: 1
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: select 'x'
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-open-prepared-statements: 50
+      max-pool-prepared-statement-per-connection-size: 20
+
+akashConfig:
+
+
