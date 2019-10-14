@@ -3,6 +3,7 @@ package prism.akash.container.extend;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
+import org.apache.poi.ss.formula.functions.T;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,17 +46,17 @@ public class BaseDataExtends implements Serializable {
             List<BaseData> engineFlow = baseApi.selectBase(isChild ?
                     new sqlEngine()
                             .execute("engineexecute", "e")
-                            .queryBuild(queryType.and, "e", "eid", conditionType.EQ, "eid")
-                            .queryBuild(queryType.and, "e", "type", conditionType.EQ, "type")
+                            .queryBuild(queryType.and, "e", "eid", conditionType.EQ, null,"eid")
+                            .queryBuild(queryType.and, "e", "type", conditionType.EQ, null,"type")
                             .dataSort("e", "sorts", sortType.ASC)
                             .selectFin(JSON.toJSONString(sel))
                     :
                     new sqlEngine()
                             .execute("engineexecute", "e")
                             .joinBuild("engineList", "en", joinType.L).joinColunm("e", "eid", "id").joinFin()
-                            .queryBuild(queryType.and, "e", "eid", conditionType.EQ, "eid")
-                            .queryBuild(queryType.and, "en", "type", conditionType.EQ, "type")
-                            .queryBuild(queryType.and, "e", "type", conditionType.EQ, "type")
+                            .queryBuild(queryType.and, "e", "eid", conditionType.EQ, null,"eid")
+                            .queryBuild(queryType.and, "en", "type", conditionType.EQ, null,"type")
+                            .queryBuild(queryType.and, "e", "type", conditionType.EQ, null,"type")
                             .dataSort("e", "sorts", sortType.ASC)
                             .selectFin(JSON.toJSONString(sel)));
             if (engineFlow.size() > 0) {
@@ -104,12 +105,14 @@ public class BaseDataExtends implements Serializable {
                                         sqlEngine.dataSort(jo.get("table") + "", jo.get("key") + "", sortType.getSortType(jo.getString("sortType")));
                                         break;
                                     case "caseBuild":
-                                        sqlEngine.caseBuild(jo.get("caseTable") + "", jo.get("caseColumn") + "", jo.get("caseAlias") + "");
+//                                        sqlEngine.caseBuild(jo.get("caseTable") + "", jo.get("caseColumn") + "", jo.get("caseAlias") + "");
+                                        sqlEngine.caseBuild(jo.get("caseAlias") + "");
                                         break;
                                     case "caseWhenQuery":
                                         sqlEngine.caseWhenQuery(queryType.getQueryType(jo.getString("whenQuery"))
                                                 , jo.get("whenTable") + "", jo.get("whenColumn") + ""
                                                 , conditionType.getconditionType(jo.getString("whenCondition"))
+                                                , groupType.getgroupType(jo.getString("exCaseType"))
                                                 , jo.get("whenValue") + "");
                                         break;
                                     case "caseThen":
@@ -119,7 +122,9 @@ public class BaseDataExtends implements Serializable {
                                         sqlEngine.caseFin(jo.get("elseValue") + "");
                                         break;
                                     case "appointColumn":
-                                        sqlEngine.appointColumn(jo.get("appointTable") + "", jo.get("appointColumns") + "");
+                                        sqlEngine.appointColumn(jo.get("appointTable") + ""
+                                                , groupType.getgroupType(jo.getString("exAppointType")),
+                                                jo.get("appointColumns") + "");
                                         break;
                                     case "groupBuild":
                                         sqlEngine.groupBuild(jo.get("groupTable") + "", jo.get("groupColumns") + "");
@@ -147,6 +152,7 @@ public class BaseDataExtends implements Serializable {
                                         sqlEngine.queryBuild(queryType.getQueryType(jo.getString("queryType"))
                                                 , jo.get("table") + "", jo.get("key") + ""
                                                 , conditionType.getconditionType(jo.getString("conditionType"))
+                                                , groupType.getgroupType(jo.getString("exQueryType"))
                                                 , jo.get("value") + "");
                                         break;
                                     case "queryChild":

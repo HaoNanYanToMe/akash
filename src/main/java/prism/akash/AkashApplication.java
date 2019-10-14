@@ -21,10 +21,12 @@ public class AkashApplication {
 		BaseData sel = new BaseData();
 		sel.put("eid","1");
 		sel.put("akname","2");
+		sel.put("csize","3");
 		String data = JSON.toJSONString(sel);
 //		System.out.println(baseController.selectBase("1",data));
-		System.out.println(baseController.selectBase("1",data));
-		System.out.println(baseController.selectBase("2",data));
+//		System.out.println(baseController.selectBase("1",data));
+		System.out.println(baseController.selectBase("4",data));
+//		System.out.println(baseController.selectBase("3",data));
 //		System.out.println(baseController.selectBase("1",data));
 //		System.out.println(baseController.selectBase("1",data));
 //		}

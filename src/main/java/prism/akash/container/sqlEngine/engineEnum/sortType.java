@@ -19,12 +19,14 @@ public enum sortType {
 
     //获取枚举对象
     public static sortType getSortType(String value){
-        for (sortType so:sortType.values()) {
-            if(value.equals(so.name())){
-                return so;
+        if (value != null) {
+            for (sortType so : sortType.values()) {
+                if (value.equals(so.name())) {
+                    return so;
+                }
             }
         }
-        return null;
+        return DESC;
     }
 
 }

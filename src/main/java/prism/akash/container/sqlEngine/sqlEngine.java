@@ -3,8 +3,12 @@ package prism.akash.container.sqlEngine;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.lang.StringEscapeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import prism.akash.container.BaseData;
+import prism.akash.container.extend.BaseDataExtends;
 import prism.akash.container.sqlEngine.engineEnum.*;
+import prism.akash.tools.StringChecKit;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;
@@ -12,6 +16,7 @@ import java.util.LinkedHashMap;
 public class sqlEngine implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    private final Logger logger = LoggerFactory.getLogger(BaseDataExtends.class);
 
     BaseData engine = null;
     boolean isGroup = false;
@@ -44,21 +49,41 @@ public class sqlEngine implements Serializable {
     }
 
     private sqlEngine queryValue(String value) {
-        engine.put("queryValue", "params_" + StringEscapeUtils.escapeSql(value.toString()));
+        String key = engine.getString("queryKey");
+        //TODO : 获取锁定标识，当查询Key值带有@，value将直接作为参数使用，反之则作为常量占位符
+        if (key.contains("@")) {
+            engine.put("queryValue", value);
+            engine.put("queryKey", key.replaceAll("@", ""));
+        } else {
+            engine.put("queryValue", "params_" + StringEscapeUtils.escapeSql(value.toString()));
+        }
+
         return this;
     }
 
-
-    public sqlEngine caseBuild(String caseTable, String caseColumn, String caseAlias) {
+    /**
+     * 暂未开放此功能项（已废弃）
+     *
+     * @param caseTable
+     * @param caseColumn
+     * @param caseAlias
+     * @return
+     */
+    private sqlEngine caseBuild(String caseTable, String caseColumn, String caseAlias) {
         engine.put("caseTable", caseTable);
         engine.put("caseColumn", caseColumn);
         engine.put("caseAlias", caseAlias == null ? caseTable + "_" + caseColumn : caseAlias);
         return this;
     }
 
-    public sqlEngine caseWhenQuery(queryType whenQuery, String whenTable, String whenColumn, conditionType whenCondition, String whenValue) {
+    public sqlEngine caseBuild(String caseAlias) {
+        engine.put("caseAlias", StringEscapeUtils.escapeSql(caseAlias));
+        return this;
+    }
+
+    public sqlEngine caseWhenQuery(queryType whenQuery, String whenTable, String whenColumn, conditionType whenCondition, groupType exCaseType, String whenValue) {
         //TODO: 调用queryBuild获取筛选条件
-        this.queryBuild(whenQuery, whenTable, whenColumn, whenCondition, whenValue);
+        this.queryBuild(whenQuery, whenTable, whenColumn, whenCondition, exCaseType, whenValue);
         engine.put("caseWhenQuery", engine.get("caseWhenQuery") == null ? engine.get("query") : engine.get("caseWhenQuery") + whenQuery.getQueryType() + engine.get("query"));
         //将生产好的查询语句转存后清空
         engine.remove("query");
@@ -146,9 +171,13 @@ public class sqlEngine implements Serializable {
             }
         } else {
             //TODO: 当前是否嵌套了子查询
-
             if (engine.get("child") == null) {
-                query.append(" '").append(engine.get("queryValue")).append("' ");
+                //TODO : 二次判断当前查询是否使用了特殊标记
+                if(engine.get("exType") == null){
+                    query.append(" '").append(engine.get("queryValue")).append("' ");
+                }else{
+                    query.append(engine.get("queryValue"));
+                }
             } else {
                 query.append(engine.get("queryValue"));
             }
@@ -163,6 +192,7 @@ public class sqlEngine implements Serializable {
         engine.remove("conditionType");
         engine.remove("queryKey");
         engine.remove("queryValue");
+        engine.remove("exType");
 
         //TODO : 将生成的查询语句保存在引擎对象
         engine.put(queryName, (engine.get(queryName) == null ? " " : engine.getString(queryName)) + " " + query);
@@ -241,23 +271,24 @@ public class sqlEngine implements Serializable {
      * 指定需要查询的数据字段，以表为单位进行设定,若columns为空则视为查询当前表全部
      *
      * @param appointTable
+     * @param exAppointType  标记特殊查询方式
      * @param appointColumns 字段以逗号隔开，如需指定别名可按照   原列名#列别名 进行设置
      * @return
      */
-    public sqlEngine appointColumn(String appointTable, String appointColumns) {
+    public sqlEngine appointColumn(String appointTable, groupType exAppointType, String appointColumns) {
         StringBuffer appoint = new StringBuffer(",");
-
+        String exType = exAppointType.getgroupType();
+        boolean isExAppoint = exType.equals("DEF");
         //TODO: 对传入数据进行处理优化
         if (appointColumns.length() < 1) {
             appoint.append(appointTable).append(".*");
             appoint = appoint.deleteCharAt(0);
         } else {
             for (String col : appointColumns.split(",")) {
-                appoint.append(appointTable).append(".");
                 if (col.contains("#")) {
-                    appoint.append(col.split("#")[0]).append(" AS ").append(col.split("#")[1]).append(",");
+                    appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col.split("#")[0]).append(isExAppoint ? " AS " : ") AS ").append(col.split("#")[1]).append(",");
                 } else {
-                    appoint.append(col).append(",");
+                    appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col).append(isExAppoint ? "," : "),");
                 }
             }
             appoint = appoint.deleteCharAt(0).deleteCharAt(appoint.length() - 1);
@@ -369,11 +400,28 @@ public class sqlEngine implements Serializable {
      * @param queryType
      * @param key
      * @param conditionType
-     * @param value
+     * @param exQueryType
+     * @param value  如果exCaseType不为null或DEF，则value入参格式为table||key!
      * @return
      */
-    public sqlEngine queryBuild(queryType queryType, String table, String key, conditionType conditionType, String value) {
+    public sqlEngine queryBuild(queryType queryType, String table, String key, conditionType conditionType, groupType exQueryType, String value) {
         this.isGroup = false;
+        String exType = exQueryType == null ? "DEF" : exQueryType.getgroupType();
+        if (!exType.equals("DEF")) {
+            key = "@" + key;
+            String exTable = value.split("\\|\\|")[0];
+            String exKey = value.split("\\|\\|")[1];
+
+            if(StringChecKit.isSpecialChar(exTable) ||  StringChecKit.isSpecialChar(exKey)){
+                value = "Error in data format";
+                logger.error("⚠ 检测到异常注入攻击，引擎已进行拦截。");
+                engine.put("error",value);
+            }else{
+                value = exType + "(" + exTable + "." + exKey + ")";
+            }
+            //TODO : 特殊标记
+            engine.put("exType", "exType");
+        }
         return this.queryType(queryType).queryTable(table).queryKey(key).queryConditionType(conditionType).queryValue(value).queryFin(true);
     }
 
@@ -559,14 +607,22 @@ public class sqlEngine implements Serializable {
         String dataSort = engine.get("dataSort") == null ? " " : engine.get("dataSort").toString();
 
         boolean caseFin = engine.get("caseFin") == null;
+        boolean appointFin = engine.get("appointColumn") == null;
+        boolean groupFin = engine.get("groupColumn") == null;
+
 
         sel.append(" SELECT ").append(caseFin ? " " : engine.get("caseFin"));
 
-        //TODO: 首先判断查询字段是否存在，如不存在则判断case语句是否存在，若存在则不做任何操作反则查询全部，若字段存在，则在case语句句柄末尾添加逗号防止sql生成出错
-        if (this.isGroup) {
-            sel.append(engine.get("groupColumn") == null ? caseFin ? " * " : "  " : (caseFin ? " " : " , ") + engine.get("groupColumn"));
-        } else {
-            sel.append(engine.get("appointColumn") == null ? caseFin ? " * " : "  " : (caseFin ? " " : " , ") + engine.get("appointColumn"));
+        //当三个查询均为null时，默认为查询全部
+        if (caseFin && appointFin && groupFin){
+            sel.append(" * ");
+        }else{
+            //TODO: 首先判断查询字段是否存在，如不存在则判断case语句是否存在，若存在则不做任何操作反则查询全部，若字段存在，则在case语句句柄末尾添加逗号防止sql生成出错
+            if(this.isGroup){
+                sel.append(groupFin ? " " : (caseFin ? " " : " , ") + engine.get("groupColumn"));
+                sel.append(appointFin ? " " : " , ");
+            }
+            sel.append(appointFin ? " " : (caseFin ? " " : " , ") + engine.get("appointColumn"));
         }
 
         sel.append(" FROM ")

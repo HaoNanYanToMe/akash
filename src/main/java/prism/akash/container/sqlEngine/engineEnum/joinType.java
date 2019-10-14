@@ -25,11 +25,13 @@ public enum joinType {
 
     //获取枚举对象
     public static joinType getJoinType(String value){
-        for (joinType jo:joinType.values()) {
-            if(value.equals(jo.name())){
-                return jo;
+        if (value != null) {
+            for (joinType jo : joinType.values()) {
+                if (value.equals(jo.name())) {
+                    return jo;
+                }
             }
         }
-        return null;
+        return L;
     }
 }

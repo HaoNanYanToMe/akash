@@ -21,11 +21,13 @@ public enum queryType {
 
     //获取枚举对象
     public static queryType getQueryType(String value){
-        for (queryType qo:queryType.values()) {
-            if(value.equals(qo.name())){
-                return qo;
+        if (value != null) {
+            for (queryType qo : queryType.values()) {
+                if (value.equals(qo.name())) {
+                    return qo;
+                }
             }
         }
-        return null;
+        return and;
     }
 }

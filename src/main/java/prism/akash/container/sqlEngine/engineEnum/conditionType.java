@@ -29,11 +29,13 @@ public enum conditionType {
 
     //获取枚举对象
     public static conditionType getconditionType(String value){
-        for (conditionType co:conditionType.values()) {
-            if(value.equals(co.name())){
-                return co;
+        if (value != null) {
+            for (conditionType co : conditionType.values()) {
+                if (value.equals(co.name())) {
+                    return co;
+                }
             }
         }
-        return null;
+        return EQ;
     }
 }
