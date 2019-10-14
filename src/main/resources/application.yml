@@ -13,9 +13,9 @@ spring:
     name: Akash-System
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://10.176.242.42:3306/testAkash?characterEncoding=utf8&useSSL=false
-    username: root
-    password: Hello@7.8
+    url: 
+    username: 
+    password: 
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
       filters: stat,wall,log4j,config
