@@ -20,6 +20,16 @@ public class BaseController extends BaseDataExtends{
             produces = "application/json;charset=UTF-8")
     public String selectBase(String eid,String data){
         sqlEngine reObj = super.invokeDataInteraction(new sqlEngine(),eid,data,false);
+        System.out.println("executeParam:"+JSON.toJSONString(reObj.parseSql().get("executeParam")));
         return reObj == null ? "" : JSON.toJSONString(baseApi.selectBase(reObj));
+    }
+
+    @RequestMapping(value = "/insertBase",
+            method = RequestMethod.POST,
+            produces = "application/json;charset=UTF-8")
+    public String insertBase(String eid,String data){
+        sqlEngine reObj = super.invokeDataInteraction(new sqlEngine(),eid,data,false);
+        System.out.println("executeParam:"+JSON.toJSONString(reObj.parseSql().get("executeParam")));
+        return reObj == null ? "" : JSON.toJSONString(baseApi.insertBase(reObj));
     }
 }

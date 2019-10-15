@@ -9,4 +9,5 @@ public interface BaseApi {
 
     List<BaseData> selectBase(sqlEngine sqlEngine);
 
+    int insertBase(sqlEngine sqlEngine);
 }

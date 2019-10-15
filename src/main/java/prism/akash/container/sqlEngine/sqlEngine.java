@@ -1,5 +1,7 @@
 package prism.akash.container.sqlEngine;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.lang.StringEscapeUtils;
@@ -12,6 +14,7 @@ import prism.akash.tools.StringChecKit;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 public class sqlEngine implements Serializable {
 
@@ -25,6 +28,33 @@ public class sqlEngine implements Serializable {
         engine = new BaseData();
     }
 
+    /**
+     * 注入异常提示
+     *
+     * @return
+     */
+    private sqlEngine error() {
+        logger.error("⚠ 检测到异常注入攻击，引擎已进行拦截。");
+        engine.put("error", "Error in data format");
+        return this;
+    }
+
+    /**
+     * 通用赋值方法
+     *
+     * @param data
+     * @param parseSql
+     * @return
+     */
+    private String assignment(String data, String parseSql) {
+        //TODO: 数据参数赋值操作
+        LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
+        });
+        for (String key : params.keySet()) {
+            parseSql = parseSql.replaceAll("params_" + key, params.get(key) + "");
+        }
+        return parseSql;
+    }
 
     //TODO : 查询相关    ↓↓↓↓↓↓↓↓↓
 
@@ -55,7 +85,10 @@ public class sqlEngine implements Serializable {
             engine.put("queryValue", value);
             engine.put("queryKey", key.replaceAll("@", ""));
         } else {
-            engine.put("queryValue", "params_" + StringEscapeUtils.escapeSql(value.toString()));
+            String params = StringEscapeUtils.escapeSql(value);
+            engine.put("queryValue", "params_" + params.split("#")[0]);
+            //动态参数另存为
+            engine.put("executeParam", engine.get("executeParam") == null ? params : (engine.get("executeParam") + ", " + params));
         }
 
         return this;
@@ -414,8 +447,7 @@ public class sqlEngine implements Serializable {
 
             if(StringChecKit.isSpecialChar(exTable) ||  StringChecKit.isSpecialChar(exKey)){
                 value = "Error in data format";
-                logger.error("⚠ 检测到异常注入攻击，引擎已进行拦截。");
-                engine.put("error",value);
+                this.error();
             }else{
                 value = exType + "(" + exTable + "." + exKey + ")";
             }
@@ -449,6 +481,7 @@ public class sqlEngine implements Serializable {
      */
     public sqlEngine execute(String tableName, String alias) {
         alias = alias == null || alias.trim().equals("") ? tableName : alias;
+        engine.put("tableName", tableName);
         engine.put("execute", tableName + " AS " + alias);
         return this;
     }
@@ -548,21 +581,20 @@ public class sqlEngine implements Serializable {
     /**
      * 数据分页构造器
      *
-     * @param pageNo   当前第几页
-     * @param pageSize 每页查询/展示X条
+     * @param pageNo   当前第几页动态参数
+     * @param pageSize 每页查询/展示X条动态参数
      * @return
      */
-    public sqlEngine dataPaging(Integer pageNo, Integer pageSize) {
+    public sqlEngine dataPaging(String pageNo, String pageSize) {
         StringBuffer sb = new StringBuffer();
-        //TODO:  pageSize为空则默认为一页15条
-        pageSize = pageSize == null ? 15 : pageSize;
-        //TODO:  pageNo为空则默认为第一页
-        pageNo = pageNo == null || pageNo == 0 ? 1 : pageNo;
         sb.append(" LIMIT ");
-        sb.append((pageNo - 1) * pageSize);
+        sb.append("params_").append(StringEscapeUtils.escapeSql(pageNo.split("#")[0]));
         sb.append(",");
-        sb.append(pageSize);
+        sb.append("params_").append(StringEscapeUtils.escapeSql(pageSize.split("#")[0]));
         engine.put("dataPaging", sb.toString());
+        //TODO : 动态参数另存为
+        String params = pageNo + "," + pageSize;
+        engine.put("executeParam", engine.get("executeParam") == null ? params : (engine.get("executeParam") + ", " + params));
         return this;
     }
 
@@ -637,14 +669,8 @@ public class sqlEngine implements Serializable {
 
         String parseSql = sel.toString().toLowerCase();
 
-        //TODO: 数据参数赋值操作
-        LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {});
-        for (String key : params.keySet()) {
-            parseSql = parseSql.replaceAll("params_"+key,params.get(key)+"");
-        }
-
-        engine.put("select", parseSql);
-        //清空当前检索引擎
+        engine.put("select", this.assignment(data, parseSql));
+        //TODO : 清空并重置当前引擎装载的参数
         this.isGroup = false;
         engine.remove("execute");
         engine.remove("child");
@@ -652,18 +678,143 @@ public class sqlEngine implements Serializable {
         engine.remove("query");
         engine.remove("dataSort");
         engine.remove("dataPaging");
+        engine.remove("tableName");
         return this;
     }
 
-    /**
-     * 获取sql引擎处理结果
-     *
-     * @return
-     */
+    //TODO : 获取sql引擎处理结果    ↓↓↓↓↓↓↓↓↓
     public BaseData parseSql() {
         return engine;
     }
 
-    //TODO : 查询相关    ↓↓↓↓↓↓↓↓↓
+    //TODO : 更新相关    ↓↓↓↓↓↓↓↓↓
+    public sqlEngine updateData(){
+        return this;
+    }
+
+
+    //TODO : 新增相关    ↓↓↓↓↓↓↓↓↓
+
+    /**
+     * 设置新增字段及其字段值
+     *
+     * @param addkey
+     * @param value
+     * @return
+     */
+    public sqlEngine addData(String addkey, String value) {
+        value = StringEscapeUtils.escapeSql(value);
+
+        StringBuffer addKeys = new StringBuffer();
+        StringBuffer addvalues = new StringBuffer();
+
+        addKeys.append(engine.get("addKeys") == null ? "" : engine.get("addKeys"));
+        addvalues.append(engine.get("addvalues") == null ? "" : engine.get("addvalues"));
+
+        if (addkey.contains("@")) {
+            addkey = addkey.replaceAll("@", "");
+            if (!StringChecKit.isSpecialChar(addkey)) {
+                // TODO: 固定入参值
+                addKeys.append(",").append(addkey);
+                addvalues.append("'").append(value).append("'");
+            } else {
+                this.error();
+            }
+        } else {
+            if (!StringChecKit.isSpecialChar(addkey)) {
+                addKeys.append(",").append(addkey);
+                addvalues.append("'params_").append(value.split("#")[0]).append("'");
+                //TODO : 动态参数另存为
+                engine.put("executeParam", engine.get("executeParam") == null ? value : (engine.get("executeParam") + ", " + value));
+            } else {
+                this.error();
+            }
+        }
+        engine.put("addKeys", addKeys.deleteCharAt(0));
+        engine.put("addvalues", addvalues);
+
+        return this;
+    }
+
+    /**
+     * 执行表数据复制操作
+     *
+     * @param child
+     * @return
+     */
+    public sqlEngine insertCopy(sqlEngine child) {
+        engine.put("copyData", child.engine.get("select") + "");
+        return this;
+    }
+
+    /**
+     * 新增语句生成
+     *
+     * @return
+     */
+    public sqlEngine insertFin(String data) {
+        StringBuffer insertSql = new StringBuffer();
+        insertSql.append("INSERT INTO ").append(engine.get("tableName"))
+                .append(" ( ").append(engine.get("addKeys"));
+
+        if(engine.get("fetch") == null){
+            if (engine.get("copyData") == null) {
+                insertSql.append(" ) VALUES (")
+                        .append(engine.get("addvalues")).append(")");
+            } else {
+                insertSql.append(" ) ").append(engine.get("copyData"));
+            }
+            engine.put("executeSql", this.assignment(data, insertSql.toString().toLowerCase()));
+        }else{
+            insertSql.append(" ) VALUES ").append(engine.get("addvalues"));
+            engine.put("executeSql", insertSql.toString().toLowerCase());
+        }
+
+        //TODO : 清空并重置当前引擎装载的参数
+        engine.remove("tableName");
+        engine.remove("addKeys");
+        engine.remove("addvalues");
+        engine.remove("fetch");
+        return this;
+    }
+
+    /**
+     * 批量新增数据
+     * @param fetchList
+     * @param keys
+     * @return
+     */
+    public sqlEngine insertFetchPush(String fetchList, String keys) {
+        StringBuffer addKeys = new StringBuffer();
+        StringBuffer addvalues = new StringBuffer();
+
+        JSONArray fetch = JSON.parseArray(fetchList);
+
+        for (String key : keys.split(",")) {
+            if (!key.trim().equals("")) {
+                if (!StringChecKit.isSpecialChar(key)) {
+                    addKeys.append(",").append(key);
+                } else {
+                    this.error();
+                }
+            }
+        }
+        //匹配fetch的值
+        for (int i = 0 ; i < fetch.size() ; i++) {
+            JSONObject jo = fetch.getJSONObject(i);
+            addvalues.append(",(");
+            for (String key : keys.split(",")) {
+                if (!key.equals(""))
+                    addvalues.append(jo.get(key) instanceof String ?
+                            "'" + StringEscapeUtils.escapeSql(jo.get(key).toString()) + "'" : jo.get(key)).append(",");
+            }
+            addvalues.deleteCharAt(addvalues.length()-1);
+            addvalues.append(")");
+        }
+        engine.put("addKeys", addKeys.deleteCharAt(0));
+        engine.put("addvalues", addvalues.deleteCharAt(0));
+        engine.put("fetch", "fetch");
+        return this;
+    }
 
 }

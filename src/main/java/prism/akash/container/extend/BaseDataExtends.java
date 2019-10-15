@@ -3,7 +3,6 @@ package prism.akash.container.extend;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.poi.ss.formula.functions.T;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +69,8 @@ public class BaseDataExtends implements Serializable {
                                 sqlEngine.selectFin(data);
                             } else if (executeTag.equals("joinFin")) {
                                 sqlEngine.joinFin();
+                            } else if (executeTag.equals("insertFin")) {
+                                sqlEngine.insertFin(data);
                             } else {
                                 JSONObject jo = JSONObject.parseObject(bd.get("executeData") + "");
                                 switch (executeTag) {
@@ -91,21 +92,20 @@ public class BaseDataExtends implements Serializable {
                                         break;
                                     case "joinChildBuild":
                                         sqlEngine.joinChildBuild(this.invokeDataInteraction(new sqlEngine(),
-                                                jo.getString("id"), data, true), jo.get("joinAlias") + "",
+                                                bd.getString("id"), data, true), jo.get("joinAlias") + "",
                                                 joinType.getJoinType(jo.getString("joinType")));
                                         break;
                                     case "joinColunm":
                                         sqlEngine.joinColunm(jo.get("joinTable") + "", jo.get("joinFrom") + "", jo.get("joinTo") + "");
                                         break;
                                     case "dataPaging":
-                                        sqlEngine.dataPaging(Integer.parseInt(jo.get("pageNo") + "")
-                                                , Integer.parseInt(jo.get("pageSize") + ""));
+                                        sqlEngine.dataPaging(jo.get("pageNo") + ""
+                                                , jo.get("pageSize") + "");
                                         break;
                                     case "dataSort":
                                         sqlEngine.dataSort(jo.get("table") + "", jo.get("key") + "", sortType.getSortType(jo.getString("sortType")));
                                         break;
                                     case "caseBuild":
-//                                        sqlEngine.caseBuild(jo.get("caseTable") + "", jo.get("caseColumn") + "", jo.get("caseAlias") + "");
                                         sqlEngine.caseBuild(jo.get("caseAlias") + "");
                                         break;
                                     case "caseWhenQuery":
@@ -146,7 +146,7 @@ public class BaseDataExtends implements Serializable {
                                                 , queryType.getQueryType(jo.getString("queryType"))
                                                 , jo.get("groupTable") + "", jo.get("groupColumn") + ""
                                                 , conditionType.getconditionType(jo.getString("conditionType"))
-                                                , this.invokeDataInteraction(new sqlEngine(), jo.getString("id"), data, true));
+                                                , this.invokeDataInteraction(new sqlEngine(), bd.getString("id"), data, true));
                                         break;
                                     case "queryBuild":
                                         sqlEngine.queryBuild(queryType.getQueryType(jo.getString("queryType"))
@@ -159,7 +159,17 @@ public class BaseDataExtends implements Serializable {
                                         sqlEngine.queryChild(queryType.getQueryType(jo.getString("queryType"))
                                                 , jo.get("table") + "", jo.get("key") + ""
                                                 , conditionType.getconditionType(jo.getString("conditionType"))
-                                                , this.invokeDataInteraction(new sqlEngine(), jo.getString("id"), data, true));
+                                                , this.invokeDataInteraction(new sqlEngine(), bd.getString("id"), data, true));
+                                        break;
+                                    case "addData":
+                                        sqlEngine.addData(jo.get("addkey") + "",
+                                                jo.get("value") + "");
+                                        break;
+                                    case "insertCopy":
+                                        sqlEngine.insertCopy(this.invokeDataInteraction(new sqlEngine(),bd.getString("id"),data,true));
+                                        break;
+                                    case "insertFetchPush":
+                                        sqlEngine.insertFetchPush(data,jo.get("keys") + "");
                                         break;
                                     default:
                                         break;

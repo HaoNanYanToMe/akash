@@ -20,4 +20,9 @@ public class BaseApiImpl implements BaseApi{
         return baseInteraction.select(sqlEngine.parseSql());
     }
 
+    @Override
+    public int insertBase(sqlEngine sqlEngine) {
+        return baseInteraction.update(sqlEngine.parseSql());
+    }
+
 }

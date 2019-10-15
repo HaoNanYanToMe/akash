@@ -13,8 +13,8 @@ import java.util.List;
 @Component
 public interface BaseInteraction {
 
-    @Update("insert into engines(id,name) value('1','测试查询1')")
-    int update();
+    @Update("${bd.executeSql}")
+    int update(@Param("bd")BaseData bd);
 
     @Select("${bd.select}")
     List<BaseData> select(@Param("bd")BaseData bd);
