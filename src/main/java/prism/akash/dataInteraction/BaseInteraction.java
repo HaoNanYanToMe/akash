@@ -14,8 +14,11 @@ import java.util.List;
 public interface BaseInteraction {
 
     @Update("${bd.executeSql}")
-    int update(@Param("bd")BaseData bd);
+    int execute(@Param("bd")BaseData bd);
 
     @Select("${bd.select}")
     List<BaseData> select(@Param("bd")BaseData bd);
+
+    @Select("${bd.totalSql}")
+    int selectNums(@Param("bd")BaseData bd);
 }

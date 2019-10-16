@@ -4,7 +4,11 @@ public enum conditionType {
 
     EQ(" = "),//等于
     LIKE(" LIKE "),//模糊查询
-    LIKEBINARY(" LIKE BINARY "),//忽略中英文大小写匹配
+    NOT_LIKE(" NOT LIKE "),//反向模糊查询
+    LIKE_BINARY(" LIKE BINARY "),//忽略中英文大小写匹配
+    LIKE_ESCAPE(" LIKE ESCAPE"),//模糊查询(通配符转义)
+    NOT_LIKE_ESCAPE(" NOT LIKE ESCAPE"),//反向模糊查询(通配符转义)
+    LIKE_BINARY_ESCAPE(" LIKE BINARY ESCAPE"),//忽略中英文大小写匹配(通配符转义)
     GT(" > "),//大于
     GTEQ("  >= "),//大于等于
     LT("  < "),//小于

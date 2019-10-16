@@ -71,7 +71,12 @@ public class BaseDataExtends implements Serializable {
                                 sqlEngine.joinFin();
                             } else if (executeTag.equals("insertFin")) {
                                 sqlEngine.insertFin(data);
-                            } else {
+                            } else if(executeTag.equals("updateFin")){
+                                sqlEngine.updateFin(data);
+                            } else if(executeTag.equals("selectIntactFin")){
+                                //TODO : 若需要返回数据与总条数时，请使用selectIntactFin方法，另selectIntactFin与selectFin不能同时使用！
+                                sqlEngine.selectFin(data).selectTotal();
+                            } else{
                                 JSONObject jo = JSONObject.parseObject(bd.get("executeData") + "");
                                 switch (executeTag) {
                                     case "execute":
@@ -163,13 +168,17 @@ public class BaseDataExtends implements Serializable {
                                         break;
                                     case "addData":
                                         sqlEngine.addData(jo.get("addkey") + "",
-                                                jo.get("value") + "");
+                                                jo.get("addValue") + "");
                                         break;
                                     case "insertCopy":
                                         sqlEngine.insertCopy(this.invokeDataInteraction(new sqlEngine(),bd.getString("id"),data,true));
                                         break;
                                     case "insertFetchPush":
                                         sqlEngine.insertFetchPush(data,jo.get("keys") + "");
+                                        break;
+                                    case "updateData":
+                                        sqlEngine.updateData(jo.get("updKey") + "",
+                                                jo.get("updValue") + "");
                                         break;
                                     default:
                                         break;

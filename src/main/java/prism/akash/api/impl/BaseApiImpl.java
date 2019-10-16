@@ -8,6 +8,8 @@ import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.dataInteraction.BaseInteraction;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component("baseApiImpl")
 public class BaseApiImpl implements BaseApi{
@@ -21,8 +23,13 @@ public class BaseApiImpl implements BaseApi{
     }
 
     @Override
-    public int insertBase(sqlEngine sqlEngine) {
-        return baseInteraction.update(sqlEngine.parseSql());
+    public int selectNums(sqlEngine sqlEngine) {
+        return baseInteraction.selectNums(sqlEngine.parseSql());
+    }
+
+    @Override
+    public int executeBase(sqlEngine sqlEngine) {
+        return baseInteraction.execute(sqlEngine.parseSql());
     }
 
 }

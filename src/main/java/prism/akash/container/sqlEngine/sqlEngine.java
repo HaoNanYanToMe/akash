@@ -14,7 +14,6 @@ import prism.akash.tools.StringChecKit;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;
-import java.util.List;
 
 public class sqlEngine implements Serializable {
 
@@ -176,10 +175,15 @@ public class sqlEngine implements Serializable {
         query.append(engine.get("queryKey"));
         //TODO : 根据当前筛选条件对数据进行格式重组
         String conditionType = engine.get("conditionType") == null ? "" : engine.getString("conditionType");
+        boolean isEscape = conditionType.contains("ESCAPE");
         boolean executeValue = false;
         if (conditionType.equals("")) {
             query.append(" = ");
         } else {
+            //需要进行通配符转义
+            if (isEscape) {
+                query.append(conditionType.replaceAll("ESCAPE", ""));
+            }
             query.append(conditionType);
             executeValue = conditionType.contains("LIKE") || conditionType.contains("IN") || conditionType.contains("NULL") || conditionType.contains("BET");
         }
@@ -198,10 +202,16 @@ public class sqlEngine implements Serializable {
                 query.append(" AND ");
                 query.append("'").append(queryValue.split(",")[1]).append("'");
             } else if (conditionType.equals(" LIKE ")) {
-                query.append(" '%").append(engine.get("queryValue")).append("%' ");
+                query.append(" '").append(isEscape ? queryValue.split("\\|")[1] : queryValue)
+                        .append("' ").append(isEscape ? ("ESCAPE '" + queryValue.split("\\|")[0] + "'") : "");
+            } else if (conditionType.equals(" NOT LIKE ")) {
+                query.append(" '").append(isEscape ? queryValue.split("\\|")[1] : queryValue)
+                        .append("' ").append(isEscape ? ("ESCAPE '" + queryValue.split("\\|")[0] + "'") : "");
             } else if (conditionType.equals(" LIKE BINARY ")) {
-                query.append(" CONCAT ('%',UPPER('").append(engine.get("queryValue")).append("','%')");
+                query.append(" CONCAT ('%',UPPER('").append(isEscape ? queryValue.split("\\|")[1] : queryValue).append("','%')")
+                        .append("' ").append(isEscape ? ("ESCAPE '" + queryValue.split("\\|")[0] + "'") : "");
             }
+
         } else {
             //TODO: 当前是否嵌套了子查询
             if (engine.get("child") == null) {
@@ -311,6 +321,8 @@ public class sqlEngine implements Serializable {
     public sqlEngine appointColumn(String appointTable, groupType exAppointType, String appointColumns) {
         StringBuffer appoint = new StringBuffer(",");
         String exType = exAppointType.getgroupType();
+
+        appointTable = StringEscapeUtils.escapeSql(appointTable);
         boolean isExAppoint = exType.equals("DEF");
         //TODO: 对传入数据进行处理优化
         if (appointColumns.length() < 1) {
@@ -318,10 +330,17 @@ public class sqlEngine implements Serializable {
             appoint = appoint.deleteCharAt(0);
         } else {
             for (String col : appointColumns.split(",")) {
-                if (col.contains("#")) {
-                    appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col.split("#")[0]).append(isExAppoint ? " AS " : ") AS ").append(col.split("#")[1]).append(",");
+                //TODO : 进行数据转义防止注入
+                col = StringEscapeUtils.escapeSql(col);
+                if (col.contains("@")) {
+                    //TODO ：传入固定字段值进行解析返回
+                    appoint.append("'").append(col.replaceAll("@", "")).append("'");
                 } else {
-                    appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col).append(isExAppoint ? "," : "),");
+                    if (col.contains("#")) {
+                        appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col.split("#")[0]).append(isExAppoint ? " AS " : ") AS ").append(col.split("#")[1]).append(",");
+                    } else {
+                        appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col).append(isExAppoint ? "," : "),");
+                    }
                 }
             }
             appoint = appoint.deleteCharAt(0).deleteCharAt(appoint.length() - 1);
@@ -482,6 +501,7 @@ public class sqlEngine implements Serializable {
     public sqlEngine execute(String tableName, String alias) {
         alias = alias == null || alias.trim().equals("") ? tableName : alias;
         engine.put("tableName", tableName);
+        engine.put("alias", alias == null ? tableName : alias);
         engine.put("execute", tableName + " AS " + alias);
         return this;
     }
@@ -630,8 +650,8 @@ public class sqlEngine implements Serializable {
     }
 
     /**
-     * 声明当前查询语句已经结束并执行生产
-     *
+     *  声明当前查询语句已经结束并执行生产
+     * @param data
      * @return
      */
     public sqlEngine selectFin(String data) {
@@ -657,19 +677,24 @@ public class sqlEngine implements Serializable {
             sel.append(appointFin ? " " : (caseFin ? " " : " , ") + engine.get("appointColumn"));
         }
 
-        sel.append(" FROM ")
+        //TODO : 将from子句抽离，提供计算总条数方法使用
+        StringBuffer fromSql = new StringBuffer();
+        fromSql.append(" FROM ")
                 .append(engine.get("execute"))
                 .append(" ")
                 .append(engine.get("join") == null ? "" : engine.get("join"))
                 .append(engine.get("query") == null ? "" : (" WHERE " + engine.get("query")))
                 .append(engine.get("groupBy") == null ? "" : (" GROUP BY " + engine.get("groupBy")))
                 .append(engine.get("groupQuery") == null ? "" : (" HAVING " + engine.get("groupQuery")))
-                .append(dataSort.substring(0, dataSort.length() - 1))
+                .append(dataSort.substring(0, dataSort.length() - 1));
+
+        sel.append(fromSql)
                 .append(engine.get("dataPaging") == null ? "" : engine.get("dataPaging"));
 
         String parseSql = sel.toString().toLowerCase();
 
         engine.put("select", this.assignment(data, parseSql));
+        engine.put("fromSql", this.assignment(data, fromSql.toString().toLowerCase()));
         //TODO : 清空并重置当前引擎装载的参数
         this.isGroup = false;
         engine.remove("execute");
@@ -679,6 +704,20 @@ public class sqlEngine implements Serializable {
         engine.remove("dataSort");
         engine.remove("dataPaging");
         engine.remove("tableName");
+        engine.remove("alias");
+        return this;
+    }
+
+    /**
+     * 根据已有条件检索查询查询目录总条数信息
+     * @return
+     */
+    public sqlEngine selectTotal() {
+        StringBuffer totalSql = new StringBuffer();
+        totalSql.append(" select count(1) ").append(engine.get("fromSql"));
+        engine.put("totalSql", totalSql);
+
+        engine.remove("fromSql");
         return this;
     }
 
@@ -687,53 +726,93 @@ public class sqlEngine implements Serializable {
         return engine;
     }
 
-    //TODO : 更新相关    ↓↓↓↓↓↓↓↓↓
-    public sqlEngine updateData(){
-        return this;
-    }
-
-
-    //TODO : 新增相关    ↓↓↓↓↓↓↓↓↓
 
     /**
-     * 设置新增字段及其字段值
-     *
-     * @param addkey
+     * 数据更新及新增公用提取方法
+     * @param key
      * @param value
+     * @param isAdd   是否为新增
      * @return
      */
-    public sqlEngine addData(String addkey, String value) {
+    private sqlEngine executeData(String key, String value, boolean isAdd) {
+        String executeKey = isAdd ? "addKeys" : "updKeys";
         value = StringEscapeUtils.escapeSql(value);
 
-        StringBuffer addKeys = new StringBuffer();
-        StringBuffer addvalues = new StringBuffer();
+        StringBuffer Keys = new StringBuffer();
+        StringBuffer values = new StringBuffer();
 
-        addKeys.append(engine.get("addKeys") == null ? "" : engine.get("addKeys"));
-        addvalues.append(engine.get("addvalues") == null ? "" : engine.get("addvalues"));
+        Keys.append(engine.get(executeKey) == null ? "" : engine.get(executeKey));
+        if (isAdd) {
+            values.append(engine.get("addvalues") == null ? "" : engine.get("addvalues"));
+        }
 
-        if (addkey.contains("@")) {
-            addkey = addkey.replaceAll("@", "");
-            if (!StringChecKit.isSpecialChar(addkey)) {
+        if (key.contains("@")) {
+            key = key.replaceAll("@", "");
+            if (!StringChecKit.isSpecialChar(key)) {
                 // TODO: 固定入参值
-                addKeys.append(",").append(addkey);
-                addvalues.append("'").append(value).append("'");
+                Keys.append(",").append(key);
+                if (isAdd) {
+                    values.append("'").append(value).append("'");
+                } else {
+                    Keys.append(" = '").append(value).append("'");
+                }
             } else {
                 this.error();
             }
         } else {
-            if (!StringChecKit.isSpecialChar(addkey)) {
-                addKeys.append(",").append(addkey);
-                addvalues.append("'params_").append(value.split("#")[0]).append("'");
+            if (!StringChecKit.isSpecialChar(key)) {
+                Keys.append(",").append(key);
+                if (isAdd) {
+                    values.append("'params_").append(value.split("#")[0]).append("'");
+                } else {
+                    Keys.append(" = 'params_").append(value.split("#")[0]).append("'");
+                }
                 //TODO : 动态参数另存为
                 engine.put("executeParam", engine.get("executeParam") == null ? value : (engine.get("executeParam") + ", " + value));
             } else {
                 this.error();
             }
         }
-        engine.put("addKeys", addKeys.deleteCharAt(0));
-        engine.put("addvalues", addvalues);
 
+        engine.put(executeKey, Keys.deleteCharAt(0));
+        if (isAdd) {
+            engine.put("addvalues", values);
+        }
         return this;
+    }
+
+    //TODO : 更新相关    ↓↓↓↓↓↓↓↓↓
+    public sqlEngine updateData(String updKey, String updValue) {
+        return this.executeData(updKey, updValue, false);
+    }
+
+    /**
+     * 更新语句生成
+     *
+     * @param data
+     * @return
+     */
+    public sqlEngine updateFin(String data) {
+        StringBuffer updateSql = new StringBuffer();
+
+        updateSql.append("UPDATE ").append(engine.get("tableName")).append(" ")
+                .append(engine.get("alias") == null ? engine.get("tableName") : engine.get("alias"))
+                .append(" SET ").append(engine.get("updKeys"))
+                .append(engine.get("query") == null ? "" : (" WHERE " + engine.get("query")));
+
+        engine.put("executeSql", this.assignment(data, updateSql.toString().toLowerCase()));
+        //TODO : 清空并重置当前引擎装载的参数
+        engine.remove("tableName");
+        engine.remove("alias");
+        engine.remove("updKeys");
+        engine.remove("query");
+        return this;
+    }
+
+    //TODO : 新增相关    ↓↓↓↓↓↓↓↓↓
+
+    public sqlEngine addData(String addKey, String addValue) {
+        return this.executeData(addKey, addValue, true);
     }
 
     /**
@@ -817,4 +896,16 @@ public class sqlEngine implements Serializable {
         return this;
     }
 
+    //TODO : 删除相关    ↓↓↓↓↓↓↓↓↓
+    public  sqlEngine deleteFin(String data){
+        StringBuffer deleteSql = new StringBuffer();
+        String dataSort = engine.get("dataSort") == null ? " " : engine.get("dataSort").toString();
+
+        deleteSql.append(" DELETE ").append(engine.get("alias")).append(" FROM ")
+                .append(engine.get("tableName")).append(" AS ").append(engine.get("alias"))
+                .append(engine.get("query") == null ? "" : (" WHERE " + engine.get("query")))
+                .append(dataSort.substring(0, dataSort.length() - 1))
+                .append(engine.get("dataPaging") == null ? "" : engine.get("dataPaging");
+
+    }
 }
