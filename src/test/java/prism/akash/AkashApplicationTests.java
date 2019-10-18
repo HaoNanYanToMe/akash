@@ -1,9 +1,6 @@
 package prism.akash;
 
-import prism.akash.container.BaseData;
-import prism.akash.container.sqlEngine.engineEnum.conditionType;
-import prism.akash.container.sqlEngine.engineEnum.queryType;
-import prism.akash.container.sqlEngine.sqlEngine;
+import gui.ava.html.image.generator.HtmlImageGenerator;
 
 //@RunWith(SpringRunner.class)
 //@SpringBootTest
@@ -14,9 +11,6 @@ public class AkashApplicationTests {
 //	}
 
     public static void main(String[] args) {
-        sqlEngine engine = new sqlEngine();
 
-//        String s = engine.execute(new sqlEngine().execute("test","ttt").appointColumn("test","p1,p2,p3").selectFin(),"testChild").appointColumn("testChild","p1#看看吧").selectFin().parseSql().getString("select");
-//        System.out.println(s);
     }
 }

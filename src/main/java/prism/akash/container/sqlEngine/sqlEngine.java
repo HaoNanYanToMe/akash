@@ -13,7 +13,10 @@ import prism.akash.container.sqlEngine.engineEnum.*;
 import prism.akash.tools.StringChecKit;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.UUID;
 
 public class sqlEngine implements Serializable {
 
@@ -46,11 +49,24 @@ public class sqlEngine implements Serializable {
      * @return
      */
     private String assignment(String data, String parseSql) {
-        //TODO: 数据参数赋值操作
-        LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
-        });
-        for (String key : params.keySet()) {
-            parseSql = parseSql.replaceAll("params_" + key, params.get(key) + "");
+        if (!data.equals("")) {
+            //TODO: 数据参数赋值操作
+            LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
+            });
+
+            String executeParam = engine.get("executeParam") + "";
+            for (String key : params.keySet()) {
+                parseSql = parseSql.replaceAll("params_" + key, params.get(key) + "");
+                //TODO : 将已传参的参数消除
+                executeParam.replaceAll(key, "");
+            }
+
+            //TODO : 将未传参的参数统一变更为NULL
+            for (String notParam : executeParam.split(",")) {
+                if (!notParam.equals("")) {
+                    parseSql = parseSql.replaceAll("'params_" + notParam + "'", "NULL");
+                }
+            }
         }
         return parseSql;
     }
@@ -349,7 +365,7 @@ public class sqlEngine implements Serializable {
         if (engine.get("appointColumn") == null) {
             engine.put("appointColumn", appoint);
         } else {
-            engine.put("appointColumn", engine.get("appointColumn").toString() + appoint);
+            engine.put("appointColumn", engine.get("appointColumn").toString() + "," + appoint);
         }
         return this;
     }
@@ -752,9 +768,18 @@ public class sqlEngine implements Serializable {
                 // TODO: 固定入参值
                 Keys.append(",").append(key);
                 if (isAdd) {
-                    values.append("'").append(value).append("'");
+                    //TODO ： 仅insertBase开放使用
+                    if (value.equals("NULL")) {
+                        values.append(value);
+                    } else {
+                        values.append("'").append(value).append("'");
+                    }
                 } else {
-                    Keys.append(" = '").append(value).append("'");
+                    if (value.equals("NULL")) {
+                        Keys.append(value);
+                    } else {
+                        Keys.append(" = '").append(value).append("'");
+                    }
                 }
             } else {
                 this.error();
@@ -816,6 +841,32 @@ public class sqlEngine implements Serializable {
     }
 
     /**
+     * ∞ 用于表数据初始化
+     *
+     * @return
+     */
+    public sqlEngine addDataInit(String data) {
+        LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
+        });
+
+        List<BaseData> fetch = new ArrayList<>();
+        String keys = "id,code,name,tid,sorts";
+        int sorts = 1;
+        for (String key : params.keySet()) {
+            BaseData fe = new BaseData();
+            fe.put("id", UUID.randomUUID().toString().replaceAll("-", ""));
+            fe.put("code", key);
+            fe.put("name", params.get(key));
+            fe.put("tid", engine.get("alias"));
+            fe.put("sorts", sorts);
+            fetch.add(fe);
+            sorts++;
+        }
+
+        return this.insertFetchPush(JSON.toJSONString(fetch), keys.substring(0, keys.length())).insertFin("");
+    }
+
+    /**
      * 执行表数据复制操作
      *
      * @param child
@@ -851,6 +902,7 @@ public class sqlEngine implements Serializable {
 
         //TODO : 清空并重置当前引擎装载的参数
         engine.remove("tableName");
+        engine.remove("alias");
         engine.remove("addKeys");
         engine.remove("addvalues");
         engine.remove("fetch");
@@ -905,7 +957,14 @@ public class sqlEngine implements Serializable {
                 .append(engine.get("tableName")).append(" AS ").append(engine.get("alias"))
                 .append(engine.get("query") == null ? "" : (" WHERE " + engine.get("query")))
                 .append(dataSort.substring(0, dataSort.length() - 1))
-                .append(engine.get("dataPaging") == null ? "" : engine.get("dataPaging");
+                .append(engine.get("dataPaging") == null ? "" : engine.get("dataPaging"));
 
+        //TODO : 清空并重置当前引擎装载的参数
+        engine.remove("tableName");
+        engine.remove("alias");
+        engine.remove("query");
+        engine.remove("dataSort");
+        engine.remove("dataPaging");
+        return this;
     }
 }

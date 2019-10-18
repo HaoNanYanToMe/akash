@@ -1,5 +1,5 @@
 server:
-  port: 8088
+  port: 8090
   servlet:
     session:
       timeout: PT360M
@@ -13,9 +13,9 @@ spring:
     name: Akash-System
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: 
-    username: 
-    password: 
+    url: jdbc:mysql://localhost:3852/testAkash?characterEncoding=utf8&useSSL=false&serverTimezone=UTC
+    username: root
+    password: chhu2017
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
       filters: stat,wall,log4j,config
@@ -34,5 +34,6 @@ spring:
       max-pool-prepared-statement-per-connection-size: 20
 
 akashConfig:
+  defaultFilePath: d:/haibao/
 
 

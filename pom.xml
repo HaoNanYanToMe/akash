@@ -16,6 +16,15 @@
 		<relativePath/>
 	</parent>
 
+	<!-- 指定阿里镜像源-->
+	<repositories>
+		<repository>
+			<id>aliyun-repos</id>
+			<name>aliyun Releases</name>
+			<url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+		</repository>
+	</repositories>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -146,6 +155,13 @@
             <artifactId>poi</artifactId>
             <version>3.10-FINAL</version>
         </dependency>
+
+		<!-- https://mvnrepository.com/artifact/gui.ava/html2image -->
+		<dependency>
+			<groupId>gui.ava</groupId>
+			<artifactId>html2image</artifactId>
+			<version>0.9</version>
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -3,6 +3,7 @@ package prism.akash.container.extend;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import prism.akash.container.sqlEngine.engineEnum.*;
 import prism.akash.container.sqlEngine.sqlEngine;
 
 import java.io.Serializable;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
@@ -24,6 +26,48 @@ public class BaseDataExtends implements Serializable {
 
     @Autowired
     BaseApi baseApi;
+
+    /**
+     * 新增拓展构造器
+     *
+     * @param id
+     * @param data
+     * @return
+     */
+    public sqlEngine invokeInsertData(String id, String data) {
+        sqlEngine sqlEngine = null;
+        //TODO : 确认待执行表存在
+        if (id != null) {
+            if (!id.equals("")) {
+                List<BaseData> colArray = baseApi.selectBase(
+                        new sqlEngine()
+                                .execute("columnArray", "c")
+                                .appointColumn("c", groupType.DEF, "code#c_code")
+                                .appointColumn("t", groupType.DEF, "code#t_code")
+                                .joinBuild("tableArray", "t", joinType.R)
+                                .joinColunm("c", "tid", "id").joinFin()
+                                .queryBuild(queryType.and, "c", "@tid", conditionType.EQ, null, id)
+                                .selectFin(""));
+                if (colArray.size() > 0) {
+                    sqlEngine = new sqlEngine();
+                    sqlEngine.execute(colArray.get(0).get("t_code") + "", "");
+                    LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
+                    });
+                    //TODO : 确认传入字段存在
+                    for (String key : params.keySet()) {
+                        for (BaseData col : colArray) {
+                            if (col.get("c_code").equals(key)) {
+                                String value = params.get(key).toString();
+                                sqlEngine.addData("@" + key, value);
+                            }
+                        }
+                    }
+                    sqlEngine.insertFin("");
+                }
+            }
+        }
+        return sqlEngine;
+    }
 
     /**
      * 动态SQL构造器
@@ -76,6 +120,9 @@ public class BaseDataExtends implements Serializable {
                             } else if(executeTag.equals("selectIntactFin")){
                                 //TODO : 若需要返回数据与总条数时，请使用selectIntactFin方法，另selectIntactFin与selectFin不能同时使用！
                                 sqlEngine.selectFin(data).selectTotal();
+                            } else if (executeTag.equals("addDataInit")) {
+                                //TODO : 特殊方法 - 数据库表及字段同步时调用
+                                sqlEngine.addDataInit(data);
                             } else{
                                 JSONObject jo = JSONObject.parseObject(bd.get("executeData") + "");
                                 switch (executeTag) {
