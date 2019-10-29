@@ -850,13 +850,16 @@ public class sqlEngine implements Serializable {
         });
 
         List<BaseData> fetch = new ArrayList<>();
-        String keys = "id,code,name,tid,sorts";
+        String keys = "id,code,name,tid,type,size,sorts";
         int sorts = 1;
         for (String key : params.keySet()) {
+            String [] dataAttribute = params.get(key).toString().split("\\|\\|");
             BaseData fe = new BaseData();
             fe.put("id", UUID.randomUUID().toString().replaceAll("-", ""));
             fe.put("code", key);
-            fe.put("name", params.get(key));
+            fe.put("name", dataAttribute[0]);
+            fe.put("type", dataAttribute.length > 0 ? dataAttribute[1] : "");
+            fe.put("size", dataAttribute.length > 1 ? dataAttribute[2] : "0.0");
             fe.put("tid", engine.get("alias"));
             fe.put("sorts", sorts);
             fetch.add(fe);
@@ -959,6 +962,7 @@ public class sqlEngine implements Serializable {
                 .append(dataSort.substring(0, dataSort.length() - 1))
                 .append(engine.get("dataPaging") == null ? "" : engine.get("dataPaging"));
 
+        engine.put("executeSql", this.assignment(data, deleteSql.toString().toLowerCase()));
         //TODO : 清空并重置当前引擎装载的参数
         engine.remove("tableName");
         engine.remove("alias");

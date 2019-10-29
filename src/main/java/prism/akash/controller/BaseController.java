@@ -36,6 +36,12 @@ public class BaseController extends BaseDataExtends{
     @Autowired
     HtmlTemplateAnalysis htmlTemplateAnalysis;
 
+    /**
+     * 查询全部信息（含分页）
+     * @param eid
+     * @param data
+     * @return
+     */
     @RequestMapping(value = "/selectPage",
             method = RequestMethod.POST,
             produces = "application/json;charset=UTF-8")
@@ -43,6 +49,12 @@ public class BaseController extends BaseDataExtends{
         return JSON.toJSONString(baseApi.selectPage(eid,data));
     }
 
+    /**
+     * 查询全部信息
+     * @param eid
+     * @param data
+     * @return
+     */
     @RequestMapping(value = "/select",
             method = RequestMethod.POST,
             produces = "application/json;charset=UTF-8")
@@ -50,6 +62,12 @@ public class BaseController extends BaseDataExtends{
         return JSON.toJSONString(baseApi.select(eid,data));
     }
 
+    /**
+     * 数据变更
+     * @param eid
+     * @param data
+     * @return
+     */
     @RequestMapping(value = "/executeBase",
             method = RequestMethod.POST,
             produces = "application/json;charset=UTF-8")
@@ -58,7 +76,12 @@ public class BaseController extends BaseDataExtends{
     }
 
 
-
+    /**
+     * 新增（基础）
+     * @param id    表对应的ID
+     * @param data  表内字段
+     * @return
+     */
     @RequestMapping(value = "/insertBase",
             method = RequestMethod.POST,
             produces = "application/json;charset=UTF-8")
@@ -66,7 +89,12 @@ public class BaseController extends BaseDataExtends{
         return JSON.toJSONString(baseApi.insertData(id,data));
     }
 
-
+    /**
+     * 手动初始化基本数据信息
+     * @param table
+     * @param data
+     * @return
+     */
     @RequestMapping(value = "/initData",
             method = RequestMethod.POST,
             produces = "application/json;charset=UTF-8")
@@ -74,7 +102,12 @@ public class BaseController extends BaseDataExtends{
         return JSON.toJSONString(baseApi.insertInitData(table,data));
     }
 
-
+    /**
+     * 获取图片及文件流
+     * @param response
+     * @param fileName
+     * @throws IOException
+     */
     @CrossOrigin(origins = "*", maxAge = 3600)
     @RequestMapping(value = "/getFile",
             method = RequestMethod.GET,
@@ -90,20 +123,7 @@ public class BaseController extends BaseDataExtends{
     @RequestMapping(value = "/zzz",
             method = RequestMethod.GET,
             produces = "application/json;charset=UTF-8")
-    public String zzz(){
-        HtmlImageGenerator imageGenerator = new HtmlImageGenerator();
-        String html = htmlTemplateAnalysis.readHtml("D:/haibao/hb.html");
-        imageGenerator.loadHtml(html);
-        try {
-            imageGenerator.getBufferedImage();
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        UUID uid = UUID.randomUUID();
-        imageGenerator.saveAsImage("d:/"+uid+".png");
-//        imageGenerator.saveAsHtmlWithMap("1.html", "d:/"+uid+".png");
-
-       return "finsh";
+    public String zzz(String stayId,String index,String data){
+       return htmlTemplateAnalysis.generatePicture(stayId,index,data);
     }
 }

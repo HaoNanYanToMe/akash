@@ -39,6 +39,7 @@ public class BaseDataExtends implements Serializable {
         //TODO : 确认待执行表存在
         if (id != null) {
             if (!id.equals("")) {
+                //TODO : 数据载入缓存 --
                 List<BaseData> colArray = baseApi.selectBase(
                         new sqlEngine()
                                 .execute("columnArray", "c")
@@ -226,6 +227,9 @@ public class BaseDataExtends implements Serializable {
                                     case "updateData":
                                         sqlEngine.updateData(jo.get("updKey") + "",
                                                 jo.get("updValue") + "");
+                                        break;
+                                    case "deleteFin":
+                                        sqlEngine.deleteFin(data);
                                         break;
                                     default:
                                         break;
