@@ -82,7 +82,7 @@ public class excelUpLoadParse implements FileUpload, Serializable {
                     .queryBuild(queryType.and, "t", "@code", conditionType.EQ, groupType.DEF, execute)
                     .selectFin(""));
 
-//            new sqlEngine().execute("a","a").appointColumn("a",groupType.DEF)
+//            new sqlEngine().execute("a","a").appointColumn("a",1groupType.DEF)
             // TODO : 获取全表字段
             StringBuffer cols = new StringBuffer();
             for (BaseData col : columns) {
