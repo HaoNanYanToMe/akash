@@ -55,6 +55,10 @@ public class BaseData extends HashMap implements Map{
         return obj;
     }
 
+    public Integer getInter(Object key){
+        return Integer.parseInt(get(key)+"");
+    }
+
     public String getString(Object key) {
         return (String)get(key);
     }

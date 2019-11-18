@@ -123,7 +123,7 @@ public class excelUpLoadParse implements FileUpload, Serializable {
                                         res = Integer.parseInt(res + "");
                                     } else if (type.equals("double")) {
                                         res = Double.parseDouble(res + "");
-                                    } else if (type.equals("date")) {
+                                    } else if (type.equals("date") ) {
 //                                        res = dateParse.parseDate(res.toString());
                                     } else if (type.equals("time")) {
 //                                        res = dateParse.parseTime(res.toString());

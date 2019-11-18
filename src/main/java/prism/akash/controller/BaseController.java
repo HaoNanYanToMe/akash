@@ -118,12 +118,4 @@ public class BaseController extends BaseDataExtends{
     ) throws IOException {
         fileHandler.getFile(response,fileName);
     }
-
-    @CrossOrigin(origins = "*", maxAge = 3600)
-    @RequestMapping(value = "/zzz",
-            method = RequestMethod.GET,
-            produces = "application/json;charset=UTF-8")
-    public String zzz(String stayId,String index,String data){
-       return htmlTemplateAnalysis.generatePicture(stayId,index,data);
-    }
 }

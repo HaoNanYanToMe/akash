@@ -1,5 +1,8 @@
 package prism.akash.api.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import prism.akash.api.BaseApi;
@@ -10,10 +13,9 @@ import prism.akash.container.sqlEngine.engineEnum.groupType;
 import prism.akash.container.sqlEngine.engineEnum.queryType;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.dataInteraction.BaseInteraction;
+import prism.akash.tools.logger.CoreLogger;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component("baseApiImpl")
@@ -21,6 +23,8 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
 
     @Autowired
     BaseInteraction baseInteraction;
+    @Autowired
+    CoreLogger coreLogger;
 
     private BaseData getEngineData(String id, String executeData){
         return super.invokeDataInteraction(
@@ -77,34 +81,65 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
         int suc = 0;
         String tid = UUID.randomUUID().toString().replaceAll("-", "");
         BaseData insertTable = new BaseData();
+        BaseData updateTable = new BaseData();
         String[] tables = table.split("#");
         //TODO: 获取系统内已有表信息
         List<BaseData> tableList = this.selectBase(new sqlEngine()
-                .execute("tableArray", "t")
+                .execute("cr_tables", "t")
                 .queryBuild(queryType.and, "t", "@code", conditionType.EQ, groupType.DEF, tables[0])
                 .selectFin(""));
         if(tableList.size() > 0){
-            suc = 1;
             tid = tableList.get(0).getString("id");
+            //TODO: 执行数据更新
+            updateTable.put("executeSql", "update cr_tables set code = '" + tables[0] + "',name = '" + tables[1] + "' where id = '" + tid + "'");
+            suc = baseInteraction.execute(updateTable);
         }else{
             insertTable.put("executeSql",
-                    "INSERT INTO tableArray (id,code,name) VALUES ('" + tid + "','" + tables[0] + "','" + tables[1] + "')");
+                    "INSERT INTO cr_tables (id,code,name,state) VALUES ('" + tid + "','" + tables[0] + "','" + tables[1] + "',1)");
             suc = baseInteraction.execute(insertTable);
         }
         if (suc == 1) {
-            //TODO: 同步字段表数据时，会批量删除后重新创建（保留缓存数据）,在重置同步完成后会清除缓存（缓存key为c_id）
-            baseInteraction.execute(new sqlEngine()
-                    .execute("columnArray", "c")
-                    .queryBuild(queryType.and, "c", "@tid", conditionType.EQ, groupType.DEF, tid)
-                    .deleteFin("").parseSql());
+            //TODO: 新增或更新表成功后执行
+            coreLogger.reCordLogger("0", tables[0], tableList.size() > 0 ? "2" : "0", tid, tableList.size() > 0 ? tid : "");
 
-            //新增表成功
-            suc = baseInteraction.execute(super.invokeDataInteraction(
-                    new sqlEngine()
-                            .execute("columnArray", tid),
-                    "a20761d69ad64bd3a111525a4c6ddbca",
-                    executeData,
-                    false)
+            //TODO: 同步字段表数据时，会批量更新先前数据状态为禁用（误操作保护）后重新提交创建
+            baseInteraction.execute(new sqlEngine()
+                    .execute("cr_field", "c")
+                    .updateData("@state", "0")
+                    .queryBuild(queryType.and, "c", "@tid", conditionType.EQ, groupType.DEF, tid)
+                    .updateFin("").parseSql());
+
+            //TODO: 新增表成功
+            LinkedHashMap<String, Object> params = JSONObject.parseObject(executeData, new TypeReference<LinkedHashMap<String, Object>>() {
+            });
+
+            //TODO: 方法迁移
+            List<BaseData> fetch = new ArrayList<>();
+            String keys = "id,code,name,tid,type,size,sorts,state";
+            int sorts = 1;
+            for (String key : params.keySet()) {
+                String[] dataAttribute = params.get(key).toString().split("\\|\\|");
+                BaseData fe = new BaseData();
+                String fid = UUID.randomUUID().toString().replaceAll("-", "");
+                fe.put("id", fid);
+                fe.put("code", key);
+                fe.put("name", dataAttribute[0]);
+                fe.put("type", dataAttribute.length > 0 ? dataAttribute[1] : "");
+                fe.put("size", dataAttribute.length > 1 ? dataAttribute[2] : "0.0");
+                fe.put("tid", tid);
+                fe.put("state", 1);
+                fe.put("sorts", sorts);
+                fetch.add(fe);
+                //TODO: 写入数据列操作历史记录
+                coreLogger.reCordLogger("1", tables[0], "0", fid, "");
+                sorts++;
+            }
+            //TODO: 执行新增
+            suc = baseInteraction.execute(new sqlEngine()
+                    .execute("cr_field", "cf")
+                    .insertFetchPush(JSON.toJSONString(fetch),
+                            keys.substring(0, keys.length()))
+                    .insertFin("")
                     .parseSql());
         }
         return suc;

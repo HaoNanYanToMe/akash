@@ -1,8 +1,11 @@
 package prism.akash.tools.asyncInit;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.alibaba.fastjson.JSON;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
 
 import java.sql.Connection;
@@ -11,6 +14,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 同步信息初始化
@@ -30,6 +35,9 @@ public class AsyncInitData {
 
     @Value("${spring.datasource.password}")
     private String password;
+
+    @Autowired
+    BaseApi baseApi;
 
     //数据源连接
     private DruidDataSource getDataSource(){
@@ -69,8 +77,7 @@ public class AsyncInitData {
                     BaseData table = new BaseData();
                     table.put("code", rs.getString("TABLE_NAME"));
                     table.put("name", rs.getString("REMARKS"));
-
-                    ResultSet rsColimns = dbMetaData.getColumns(null, "", rs.getString("TABLE_NAME"), "");
+                    ResultSet rsColimns = dbMetaData.getColumns(dataBase, null, rs.getString("TABLE_NAME"), "%");
                     BaseData colimns = new BaseData();
                     while (rsColimns.next()) {
                         String cname = rsColimns.getString("COLUMN_NAME");
@@ -87,5 +94,34 @@ public class AsyncInitData {
             e.printStackTrace();
         }
         return tableArray;
+    }
+
+    /**
+     * 系统全量同步更新
+     * TODO : 用于更新指定库整库数据
+     *
+     * @return
+     */
+    public Map<String, Object> executor() {
+        Map<String, Object> re = new ConcurrentHashMap<>();
+        int suc = 0;
+        List<Object> fail = new ArrayList<>();
+        /**
+         * 获取本次需要同步的数据
+         */
+        List<BaseData> asy = this.asyncInitDataBase();
+
+        for (BaseData t : asy) {
+            if (baseApi.insertInitData(t.get("code") + "#" + t.get("name") + " ",
+                    JSON.toJSONString(t.get("colimns"))) > 0) {
+                suc++;
+            } else {
+                fail.add(t.get("code"));
+            }
+        }
+        re.put("success", suc);
+        re.put("failed", asy.size() - suc);
+        re.put("failedList", fail);
+        return re;
     }
 }

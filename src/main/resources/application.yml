@@ -13,7 +13,7 @@ spring:
     name: Akash-System
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3852/testAkash?characterEncoding=utf8&useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3852/akash?characterEncoding=utf8&useSSL=false&serverTimezone=UTC&useInformationSchema=true
     username: root
     password: chhu2017
     type: com.alibaba.druid.pool.DruidDataSource

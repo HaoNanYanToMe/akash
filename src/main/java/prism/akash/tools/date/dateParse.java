@@ -9,15 +9,24 @@ import java.util.Date;
 @Component
 public class dateParse {
 
-    public Date parseDate(String date) throws ParseException {
-        return new SimpleDateFormat("yyyyMMdd").parse(date);
+    /**
+     * 格式化时间parse
+     * @param format   格式化
+     * @param date     时间
+     * @return
+     * @throws ParseException
+     */
+    public Date parseDate(String format,String date) throws ParseException {
+        return new SimpleDateFormat(format).parse(date);
     }
 
-    public Date parseDateTime(String date) throws ParseException {
-        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(date);
-    }
-
-    public Date parseTime(String date) throws ParseException {
-        return new SimpleDateFormat("HH:mm:ss").parse(date);
+    /**
+     * 格式化时间format
+     * @param format   格式化
+     * @param date     时间
+     * @return
+     */
+    public String formatDate(String format,Date date){
+        return new SimpleDateFormat(format).format(date);
     }
 }

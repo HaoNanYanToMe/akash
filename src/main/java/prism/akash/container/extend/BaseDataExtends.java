@@ -39,15 +39,17 @@ public class BaseDataExtends implements Serializable {
         //TODO : 确认待执行表存在
         if (id != null) {
             if (!id.equals("")) {
-                //TODO : 数据载入缓存 --
+                //TODO : 数据载入缓存
+                // 2019/11/18 -> 数据表变更,逻辑变更,仅查询启用状态下的数据
                 List<BaseData> colArray = baseApi.selectBase(
                         new sqlEngine()
-                                .execute("columnArray", "c")
+                                .execute("cr_field", "c")
                                 .appointColumn("c", groupType.DEF, "code#c_code")
                                 .appointColumn("t", groupType.DEF, "code#t_code")
-                                .joinBuild("tableArray", "t", joinType.R)
+                                .joinBuild("cr_tables", "t", joinType.R)
                                 .joinColunm("c", "tid", "id").joinFin()
                                 .queryBuild(queryType.and, "c", "@tid", conditionType.EQ, null, id)
+                                .queryBuild(queryType.and, "c", "@state", conditionType.EQ, null, "1")
                                 .selectFin(""));
                 if (colArray.size() > 0) {
                     sqlEngine = new sqlEngine();
@@ -85,22 +87,22 @@ public class BaseDataExtends implements Serializable {
         if (!engineId.trim().equals("")) {
             BaseData sel = new BaseData();
             sel.put("eid", engineId);
-            sel.put("type", "0");
+            sel.put("state", "0");
             //TODO: 判断当前是否为嵌套子查询
             List<BaseData> engineFlow = baseApi.selectBase(isChild ?
                     new sqlEngine()
-                            .execute("engineexecute", "e")
+                            .execute("cr_engineexecute", "e")
                             .queryBuild(queryType.and, "e", "eid", conditionType.EQ, null,"eid")
-                            .queryBuild(queryType.and, "e", "type", conditionType.EQ, null,"type")
+                            .queryBuild(queryType.and, "e", "state", conditionType.EQ, null, "state")
                             .dataSort("e", "sorts", sortType.ASC)
                             .selectFin(JSON.toJSONString(sel))
                     :
                     new sqlEngine()
-                            .execute("engineexecute", "e")
+                            .execute("cr_engineexecute", "e")
                             .joinBuild("engineList", "en", joinType.L).joinColunm("e", "eid", "id").joinFin()
                             .queryBuild(queryType.and, "e", "eid", conditionType.EQ, null,"eid")
-                            .queryBuild(queryType.and, "en", "type", conditionType.EQ, null,"type")
-                            .queryBuild(queryType.and, "e", "type", conditionType.EQ, null,"type")
+                            .queryBuild(queryType.and, "en", "state", conditionType.EQ, null, "state")
+                            .queryBuild(queryType.and, "e", "state", conditionType.EQ, null, "state")
                             .dataSort("e", "sorts", sortType.ASC)
                             .selectFin(JSON.toJSONString(sel)));
             if (engineFlow.size() > 0) {
@@ -121,10 +123,7 @@ public class BaseDataExtends implements Serializable {
                             } else if(executeTag.equals("selectIntactFin")){
                                 //TODO : 若需要返回数据与总条数时，请使用selectIntactFin方法，另selectIntactFin与selectFin不能同时使用！
                                 sqlEngine.selectFin(data).selectTotal();
-                            } else if (executeTag.equals("addDataInit")) {
-                                //TODO : 特殊方法 - 数据库表及字段同步时调用
-                                sqlEngine.addDataInit(data);
-                            } else{
+                            } else {
                                 JSONObject jo = JSONObject.parseObject(bd.get("executeData") + "");
                                 switch (executeTag) {
                                     case "execute":

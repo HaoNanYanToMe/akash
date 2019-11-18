@@ -7,10 +7,12 @@ import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import prism.akash.container.BaseData;
 import prism.akash.container.extend.BaseDataExtends;
 import prism.akash.container.sqlEngine.engineEnum.*;
 import prism.akash.tools.StringChecKit;
+import prism.akash.tools.logger.CoreLogger;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -25,6 +27,7 @@ public class sqlEngine implements Serializable {
 
     BaseData engine = null;
     boolean isGroup = false;
+
 
     public sqlEngine() {
         engine = new BaseData();
@@ -767,6 +770,7 @@ public class sqlEngine implements Serializable {
             if (!StringChecKit.isSpecialChar(key)) {
                 // TODO: 固定入参值
                 Keys.append(",").append(key);
+                values.append(",");
                 if (isAdd) {
                     //TODO ： 仅insertBase开放使用
                     if (value.equals("NULL")) {
@@ -798,8 +802,8 @@ public class sqlEngine implements Serializable {
                 this.error();
             }
         }
-
-        engine.put(executeKey, Keys.deleteCharAt(0));
+        //2019/11/18 -> 新增修正
+        engine.put(executeKey, Keys);
         if (isAdd) {
             engine.put("addvalues", values);
         }
@@ -820,9 +824,13 @@ public class sqlEngine implements Serializable {
     public sqlEngine updateFin(String data) {
         StringBuffer updateSql = new StringBuffer();
 
+        String keys = engine.get("updKeys").toString();
+        keys = keys.substring(0,1).equals(",") ? keys.substring(1,keys.length()) : keys;
+
+
         updateSql.append("UPDATE ").append(engine.get("tableName")).append(" ")
                 .append(engine.get("alias") == null ? engine.get("tableName") : engine.get("alias"))
-                .append(" SET ").append(engine.get("updKeys"))
+                .append(" SET ").append(keys)
                 .append(engine.get("query") == null ? "" : (" WHERE " + engine.get("query")));
 
         engine.put("executeSql", this.assignment(data, updateSql.toString().toLowerCase()));
@@ -838,35 +846,6 @@ public class sqlEngine implements Serializable {
 
     public sqlEngine addData(String addKey, String addValue) {
         return this.executeData(addKey, addValue, true);
-    }
-
-    /**
-     * ∞ 用于表数据初始化
-     *
-     * @return
-     */
-    public sqlEngine addDataInit(String data) {
-        LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
-        });
-
-        List<BaseData> fetch = new ArrayList<>();
-        String keys = "id,code,name,tid,type,size,sorts";
-        int sorts = 1;
-        for (String key : params.keySet()) {
-            String [] dataAttribute = params.get(key).toString().split("\\|\\|");
-            BaseData fe = new BaseData();
-            fe.put("id", UUID.randomUUID().toString().replaceAll("-", ""));
-            fe.put("code", key);
-            fe.put("name", dataAttribute[0]);
-            fe.put("type", dataAttribute.length > 0 ? dataAttribute[1] : "");
-            fe.put("size", dataAttribute.length > 1 ? dataAttribute[2] : "0.0");
-            fe.put("tid", engine.get("alias"));
-            fe.put("sorts", sorts);
-            fetch.add(fe);
-            sorts++;
-        }
-
-        return this.insertFetchPush(JSON.toJSONString(fetch), keys.substring(0, keys.length())).insertFin("");
     }
 
     /**
@@ -887,19 +866,25 @@ public class sqlEngine implements Serializable {
      */
     public sqlEngine insertFin(String data) {
         StringBuffer insertSql = new StringBuffer();
-        insertSql.append("INSERT INTO ").append(engine.get("tableName"))
-                .append(" ( ").append(engine.get("addKeys"));
 
+        String keys = engine.get("addKeys").toString();
+        keys = keys.substring(0,1).equals(",") ? keys.substring(1,keys.length()) : keys;
+
+        insertSql.append("INSERT INTO ").append(engine.get("tableName"))
+                .append(" ( ").append(keys);
+
+        String values = engine.get("addvalues").toString();
+        values = values.substring(0,1).equals(",") ? values.substring(1,values.length()) : values;
         if(engine.get("fetch") == null){
             if (engine.get("copyData") == null) {
                 insertSql.append(" ) VALUES (")
-                        .append(engine.get("addvalues")).append(")");
+                        .append(values).append(")");
             } else {
                 insertSql.append(" ) ").append(engine.get("copyData"));
             }
             engine.put("executeSql", this.assignment(data, insertSql.toString().toLowerCase()));
         }else{
-            insertSql.append(" ) VALUES ").append(engine.get("addvalues"));
+            insertSql.append(" ) VALUES ").append(values);
             engine.put("executeSql", insertSql.toString().toLowerCase());
         }
 
