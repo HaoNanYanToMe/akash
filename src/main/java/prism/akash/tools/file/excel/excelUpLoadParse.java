@@ -18,6 +18,7 @@ import prism.akash.container.sqlEngine.engineEnum.groupType;
 import prism.akash.container.sqlEngine.engineEnum.joinType;
 import prism.akash.container.sqlEngine.engineEnum.queryType;
 import prism.akash.container.sqlEngine.sqlEngine;
+import prism.akash.tools.StringKit;
 import prism.akash.tools.date.dateParse;
 import prism.akash.tools.file.FileUpload;
 
@@ -109,7 +110,7 @@ public class excelUpLoadParse implements FileUpload, Serializable {
                 }else{
                     BaseData addData = new BaseData();
                     if (isGenerateId) {
-                        addData.put("id", UUID.randomUUID().toString().replaceAll("-", ""));
+                        addData.put("id",  StringKit.getUUID());
                     }
                     // TODO : 字段定向匹配
                     for (int j = 0; j < head.getPhysicalNumberOfCells(); j++) {

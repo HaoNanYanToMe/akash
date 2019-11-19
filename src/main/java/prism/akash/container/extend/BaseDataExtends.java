@@ -7,6 +7,7 @@ import com.alibaba.fastjson.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
 import prism.akash.container.sqlEngine.engineEnum.*;

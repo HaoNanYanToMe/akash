@@ -13,6 +13,7 @@ import prism.akash.container.sqlEngine.engineEnum.groupType;
 import prism.akash.container.sqlEngine.engineEnum.queryType;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.dataInteraction.BaseInteraction;
+import prism.akash.tools.StringKit;
 import prism.akash.tools.logger.CoreLogger;
 
 import java.util.*;
@@ -79,7 +80,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
     @Override
     public int insertInitData(String table, String executeData) {
         int suc = 0;
-        String tid = UUID.randomUUID().toString().replaceAll("-", "");
+        String tid = StringKit.getUUID();
         BaseData insertTable = new BaseData();
         BaseData updateTable = new BaseData();
         String[] tables = table.split("#");
@@ -120,7 +121,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
             for (String key : params.keySet()) {
                 String[] dataAttribute = params.get(key).toString().split("\\|\\|");
                 BaseData fe = new BaseData();
-                String fid = UUID.randomUUID().toString().replaceAll("-", "");
+                String fid = StringKit.getUUID();
                 fe.put("id", fid);
                 fe.put("code", key);
                 fe.put("name", dataAttribute[0]);

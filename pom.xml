@@ -170,12 +170,12 @@
 			<version>1.2.0</version>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/gui.ava/html2image -->
-		<dependency>
-			<groupId>gui.ava</groupId>
-			<artifactId>html2image</artifactId>
-			<version>0.9</version>
-		</dependency>
+        <!-- cssBox-->
+        <dependency>
+            <groupId>net.sf.cssbox</groupId>
+            <artifactId>cssbox</artifactId>
+            <version>4.14</version>
+        </dependency>
 
 	</dependencies>
 

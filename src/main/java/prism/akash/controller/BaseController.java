@@ -1,9 +1,8 @@
 package prism.akash.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
-import gui.ava.html.image.generator.HtmlImageGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -12,17 +11,14 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
+import prism.akash.container.converter.sqlConverter;
 import prism.akash.container.extend.BaseDataExtends;
-import prism.akash.container.sqlEngine.sqlEngine;
-import prism.akash.tools.analysis.HtmlTemplateAnalysis;
 import prism.akash.tools.file.FileHandler;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Controller
 public class BaseController extends BaseDataExtends{
@@ -34,8 +30,7 @@ public class BaseController extends BaseDataExtends{
     FileHandler fileHandler;
 
     @Autowired
-    HtmlTemplateAnalysis htmlTemplateAnalysis;
-
+    sqlConverter sqlConverter;
     /**
      * 查询全部信息（含分页）
      * @param eid
@@ -117,5 +112,19 @@ public class BaseController extends BaseDataExtends{
             @RequestParam(value = "fileName",required = false) String fileName
     ) throws IOException {
         fileHandler.getFile(response,fileName);
+    }
+
+    @CrossOrigin(origins = "*", maxAge = 3600)
+    @RequestMapping(value = "/testAddEngine",
+            method = RequestMethod.GET,
+            produces = "application/json;charset=UTF-8")
+    public void testAddEngine(){
+            String strData = "[{\"executeTag\":\"execute\",\"executeData\":\"{\\\"alias\\\":\\\"t0\\\",\\\"tableName\\\":\\\"test0\\\"}\"},{\"executeTag\":\"executeChild\",\"executeData\":\"{\\\"alias\\\":\\\"t0\\\"}\",\"childList\":\"[{\\\"executeTag\\\":\\\"execute\\\",\\\"executeData\\\":\\\"{\\\\\\\"alias\\\\\\\":\\\\\\\"t0\\\\\\\",\\\\\\\"tableName\\\\\\\":\\\\\\\"tables0\\\\\\\"}\\\"},{\\\"executeTag\\\":\\\"selectFin\\\"}]\"},{\"executeTag\":\"appointColumn\",\"executeData\":\"{\\\"appointColumn\\\":\\\"t0\\\",\\\"appointColumns\\\":\\\"id,executetag\\\"}\"},{\"executeTag\":\"queryBuild\",\"executeData\":\"{\\\"exQueryType\\\":\\\"DEF\\\",\\\"conditionType\\\":\\\"EQ\\\",\\\"value\\\":\\\"1\\\",\\\"table\\\":\\\"c0\\\",\\\"key\\\":\\\"@id\\\",\\\"queryType\\\":\\\"and\\\"}\"},{\"executeTag\":\"selectFin\"}]";
+            System.out.println(sqlConverter.initConverter("测试引擎"+i,"test_engine"+i,"测试引擎"+i));
+            JSONArray ja = JSONArray.parseArray(JSON.toJSONString(strData));
+            for (int j = 0; j < ja.size(); j++) {
+                JSONObject jo = ja.getJSONObject(j);
+                System.out.println(sqlConverter.execute(false,jo.toJSONString()));
+            }
     }
 }

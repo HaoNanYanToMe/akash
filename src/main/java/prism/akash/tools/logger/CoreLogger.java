@@ -8,11 +8,11 @@ import prism.akash.container.sqlEngine.engineEnum.conditionType;
 import prism.akash.container.sqlEngine.engineEnum.groupType;
 import prism.akash.container.sqlEngine.engineEnum.queryType;
 import prism.akash.container.sqlEngine.sqlEngine;
+import prism.akash.tools.StringKit;
 import prism.akash.tools.date.dateParse;
 
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * 核心日志记录
@@ -54,7 +54,7 @@ public class CoreLogger {
         if (tid != null) {
             //新增日志
             sqlEngine addLog = new sqlEngine().execute("cr_logger", "l")
-                    .addData("@id", UUID.randomUUID().toString().replaceAll("-", ""))
+                    .addData("@id", StringKit.getUUID())
                     .addData("@type", type)
                     .addData("@tid", tid)
                     .addData("@executorId", "system_akash")

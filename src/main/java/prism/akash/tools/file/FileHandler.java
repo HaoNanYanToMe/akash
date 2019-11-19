@@ -5,9 +5,9 @@ import org.springframework.stereotype.Component;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
+import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class FileHandler {
@@ -16,12 +16,18 @@ public class FileHandler {
     @Value("${akashConfig.defaultFilePath}")
     public String defaultFilePath;
 
+    /**
+     * 根据文件名称获取指定的文件流信息
+     * @param response
+     * @param fileName   文件名称
+     * @throws IOException
+     */
     public void getFile(HttpServletResponse response, String fileName) throws IOException {
         ServletOutputStream out = null;
         FileInputStream ips = null;
         try {
             //获取图片存放路径
-            String imgPath = defaultFilePath + fileName;
+            String imgPath = defaultFilePath + File.separator +  fileName;
             ips = new FileInputStream(new File(imgPath));
             response.setHeader("Content-disposition", "attachment;filename=" + fileName);
             response.setContentType("multipart/form-data");

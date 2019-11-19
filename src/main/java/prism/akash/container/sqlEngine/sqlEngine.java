@@ -7,23 +7,17 @@ import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import prism.akash.container.BaseData;
-import prism.akash.container.extend.BaseDataExtends;
 import prism.akash.container.sqlEngine.engineEnum.*;
-import prism.akash.tools.StringChecKit;
-import prism.akash.tools.logger.CoreLogger;
+import prism.akash.tools.StringKit;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.UUID;
 
 public class sqlEngine implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private final Logger logger = LoggerFactory.getLogger(BaseDataExtends.class);
+    private final Logger logger = LoggerFactory.getLogger(sqlEngine.class);
 
     BaseData engine = null;
     boolean isGroup = false;
@@ -483,7 +477,7 @@ public class sqlEngine implements Serializable {
             String exTable = value.split("\\|\\|")[0];
             String exKey = value.split("\\|\\|")[1];
 
-            if(StringChecKit.isSpecialChar(exTable) ||  StringChecKit.isSpecialChar(exKey)){
+            if(StringKit.isSpecialChar(exTable) ||  StringKit.isSpecialChar(exKey)){
                 value = "Error in data format";
                 this.error();
             }else{
@@ -767,7 +761,7 @@ public class sqlEngine implements Serializable {
 
         if (key.contains("@")) {
             key = key.replaceAll("@", "");
-            if (!StringChecKit.isSpecialChar(key)) {
+            if (!StringKit.isSpecialChar(key)) {
                 // TODO: 固定入参值
                 Keys.append(",").append(key);
                 values.append(",");
@@ -789,7 +783,7 @@ public class sqlEngine implements Serializable {
                 this.error();
             }
         } else {
-            if (!StringChecKit.isSpecialChar(key)) {
+            if (!StringKit.isSpecialChar(key)) {
                 Keys.append(",").append(key);
                 if (isAdd) {
                     values.append("'params_").append(value.split("#")[0]).append("'");
@@ -911,7 +905,7 @@ public class sqlEngine implements Serializable {
 
         for (String key : keys.split(",")) {
             if (!key.trim().equals("")) {
-                if (!StringChecKit.isSpecialChar(key)) {
+                if (!StringKit.isSpecialChar(key)) {
                     addKeys.append(",").append(key);
                 } else {
                     this.error();

@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import prism.akash.container.extend.BaseDataExtends;
 
 import java.util.Date;
 
@@ -20,7 +19,7 @@ import java.util.Date;
 @EnableScheduling
 public class AsyncExecutor {
 
-    private final Logger logger = LoggerFactory.getLogger(BaseDataExtends.class);
+    private final Logger logger = LoggerFactory.getLogger(AsyncExecutor.class);
 
     @Autowired
     AsyncInitData asyncInitData;
