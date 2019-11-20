@@ -1,6 +1,5 @@
 package prism.akash.container.converter;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
@@ -13,13 +12,14 @@ import prism.akash.container.sqlEngine.engineEnum.groupType;
 import prism.akash.container.sqlEngine.engineEnum.queryType;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.tools.StringKit;
+import prism.akash.tools.logger.CoreLogger;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
- * TODO : sql引擎编辑转换器
+ * TODO : 逻辑引擎编辑转换器
  */
 @Component
 public class sqlConverter implements Serializable {
@@ -29,12 +29,38 @@ public class sqlConverter implements Serializable {
     @Autowired
     BaseApi baseApi;
 
+    @Autowired
+    CoreLogger coreLogger;
+
+    /**
+     * 创建一个新的逻辑引擎
+     * @param name               引擎名称
+     * @param code               引擎唯一标识CODE
+     * @param note               引擎备注信息
+     * @param executeData        核心逻辑数据
+     * @return
+     */
+    public ConverterData createBuild(String name, String code, String note, String executeData) {
+        //初始化引擎创建工具
+        ConverterData init = new ConverterData();
+        //创建实例化引擎
+        initConverter(init, name, code, note);
+        //解析核心逻辑数据
+        JSONArray coverArray = JSONArray.parseArray(executeData);
+        for (int i = 0; i < coverArray.size(); i++) {
+            execute(init, false, coverArray.getJSONObject(i).toJSONString());
+        }
+        return init;
+    }
+
+
     /**
      * 检查当前引擎Code值是否已被使用
+     *
      * @param code
      * @return
      */
-    public BaseData checkCodeExist(String code) {
+    private BaseData checkCodeExist(String code) {
         List<BaseData> exist = baseApi.selectBase(new sqlEngine()
                 .execute("cr_engine", "c")
                 .appointColumn("c", groupType.DEF, "id")
@@ -50,7 +76,7 @@ public class sqlConverter implements Serializable {
      * @param note      引擎备注信息
      * @return
      */
-    public String initConverter(ConverterData initData,String name, String code, String note) {
+    private String initConverter(ConverterData initData, String name, String code, String note) {
         //实例初始化
         initData.setSort(0);
         initData.setExist(false);
@@ -67,7 +93,10 @@ public class sqlConverter implements Serializable {
                     .addData("@state", "0")
                     .addData("@executeVail", "0")
                     .insertFin("");
-            baseApi.execute(addEngine);
+            int result = baseApi.execute(addEngine);
+            if (result > 0)
+                // TODO : 日志写入
+                coreLogger.reCordLogger("0", "cr_engine", "0", initData.getEngineId(),"");
         } else {
             // TODO : 逻辑引擎存在则变更指令标识为true
             initData.setExist(true);
@@ -82,7 +111,7 @@ public class sqlConverter implements Serializable {
      * @param data       当前节点预处理JSON值
      * @return
      */
-    public String execute(ConverterData initData,boolean isChild, String data) {
+    private String execute(ConverterData initData, boolean isChild, String data) {
         //如果当前为新创建的引擎（exist = false）且engineId已生成（引擎已创建成功）
         if(!initData.getExist() && initData.getEngineId() != null){
             String id = StringKit.getUUID();
@@ -111,7 +140,11 @@ public class sqlConverter implements Serializable {
             }
             addExecute.addData("@isChild", child ? "1" : "0");
             addExecute.insertFin("");
-            baseApi.execute(addExecute);
+            int result = baseApi.execute(addExecute);
+            if (result > 0) {
+                // TODO : 日志写入
+                coreLogger.reCordLogger("0", "cr_engineexecute", "0", initData.getEngineId(), "");
+            }
             if(isChild){
                 initData.setChildSort(initData.getChildSort()+1);
             }else{

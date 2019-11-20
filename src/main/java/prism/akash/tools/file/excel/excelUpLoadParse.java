@@ -76,9 +76,9 @@ public class excelUpLoadParse implements FileUpload, Serializable {
             String execute = bd.getString("execute");
             // TODO : 获取数据源字段
             List<BaseData> columns = baseApi.selectBase(new sqlEngine()
-                    .execute("columnarray", "c")
+                    .execute("cr_field", "c")
                     .appointColumn("c", groupType.DEF, "")
-                    .joinBuild("tablearray", "t", joinType.L)
+                    .joinBuild("cr_tables", "t", joinType.L)
                     .joinColunm("c", "tid", "id").joinFin()
                     .queryBuild(queryType.and, "t", "@code", conditionType.EQ, groupType.DEF, execute)
                     .selectFin(""));
@@ -124,12 +124,6 @@ public class excelUpLoadParse implements FileUpload, Serializable {
                                         res = Integer.parseInt(res + "");
                                     } else if (type.equals("double")) {
                                         res = Double.parseDouble(res + "");
-                                    } else if (type.equals("date") ) {
-//                                        res = dateParse.parseDate(res.toString());
-                                    } else if (type.equals("time")) {
-//                                        res = dateParse.parseTime(res.toString());
-                                    } else if (type.equals("datetime")) {
-//                                        res = dateParse.parseDateTime(res.toString());
                                     } else {
                                         res = res.toString();
                                     }
@@ -141,21 +135,20 @@ public class excelUpLoadParse implements FileUpload, Serializable {
                     addDatas.add(addData);
                 }
                 executeNum++;
+                // TODO : 批量数据处理
                 if (executeNum == countSum*patchNum) {
                     int res = baseApi.execute(new sqlEngine().execute(execute, execute).
                             insertFetchPush(JSON.toJSONString(addDatas), colAppend).insertFin(""));
                     System.out.println("保存成功："+res+",当前数据保存节点:"+row.getRowNum()+",数据批次为:"+countSum);
                     addDatas.clear();
                     countSum++;
-                }else if(executeNum > countSum*patchNum){
-                    //余量数据处理
-                    int res = baseApi.execute(new sqlEngine().execute(execute, execute).
-                            insertFetchPush(JSON.toJSONString(addDatas), colAppend).insertFin(""));
-                    System.out.println("保存成功："+res+",当前数据保存节点:"+row.getRowNum()+",数据批次为:"+countSum);
-                    addDatas.clear();
-
                 }
             }
+            // TODO : 余量数据处理
+            int res = baseApi.execute(new sqlEngine().execute(execute, execute).
+                    insertFetchPush(JSON.toJSONString(addDatas), colAppend).insertFin(""));
+            System.out.println("余量数据保存成功："+res+",当前数据保存节点:"+executeNum+",数据批次为:"+countSum);
+            addDatas.clear();
         }else {
             result.put("result",
                     "⚠:未指定数据目标源表！");

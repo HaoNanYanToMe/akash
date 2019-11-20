@@ -188,12 +188,6 @@ public class BaseController extends BaseDataExtends{
         o4.put("executeTag", "selectFin");
         list.add(o4);
 
-        ConverterData init = new ConverterData();
-        System.out.println(sqlConverter.initConverter(init,"测试引擎_" + i, "t_" + i, "测试引擎_" + i));
-        JSONArray ja = JSONArray.parseArray(JSON.toJSONString(list));
-        for (int j = 0; j < ja.size(); j++) {
-            JSONObject jo = ja.getJSONObject(j);
-            System.out.println(sqlConverter.execute(init,false, jo.toJSONString()));
-        }
+        System.out.println(sqlConverter.createBuild("测试引擎_" + i, "t_" + i, "测试引擎_" + i,JSON.toJSONString(list)));
     }
 }

@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
 import prism.akash.container.extend.BaseDataExtends;
@@ -55,29 +56,33 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
     }
 
     @Override
-    public int execute(String id, String executeData) {
-        BaseData bd = this.getEngineData(id, executeData);
-        return bd.get("executeSql") == null ? null : baseInteraction.execute(bd);
-    }
-
-    @Override
     public List<BaseData> selectBase(sqlEngine sqlEngine) {
         BaseData bd = sqlEngine.parseSql();
         return bd.get("select") == null ? null : baseInteraction.select(bd);
     }
 
     @Override
+    @Transactional
+    public int execute(String id, String executeData) {
+        BaseData bd = this.getEngineData(id, executeData);
+        return bd.get("executeSql") == null ? null : baseInteraction.execute(bd);
+    }
+
+    @Override
+    @Transactional
     public int execute(sqlEngine sqlEngine) {
         return baseInteraction.execute(sqlEngine.parseSql());
     }
 
     @Override
+    @Transactional
     public int insertData(String id, String executeData) {
         BaseData bd = super.invokeInsertData(id, executeData).parseSql();
         return bd.get("executeSql") == null ? null : baseInteraction.execute(super.invokeInsertData(id, executeData).parseSql());
     }
 
     @Override
+    @Transactional
     public int insertInitData(String table, String executeData) {
         int suc = 0;
         String tid = StringKit.getUUID();
