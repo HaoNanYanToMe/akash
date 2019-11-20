@@ -29,16 +29,11 @@ public class sqlConverter implements Serializable {
     @Autowired
     BaseApi baseApi;
 
-    //
-    Boolean exist = false;
-
-    Integer sort = 0;
-    Integer childSort = 0;
-
-    String engineId;
-
-    String childId;
-
+    /**
+     * 检查当前引擎Code值是否已被使用
+     * @param code
+     * @return
+     */
     public BaseData checkCodeExist(String code) {
         List<BaseData> exist = baseApi.selectBase(new sqlEngine()
                 .execute("cr_engine", "c")
@@ -48,16 +43,24 @@ public class sqlConverter implements Serializable {
         return exist.size() > 0 ? exist.get(0) : null;
     }
 
-    public String initConverter(String name, String code, String note) {
+    /**
+     * 初始化逻辑执行引擎
+     * @param name      引擎名称
+     * @param code      引擎唯一标识CODE
+     * @param note      引擎备注信息
+     * @return
+     */
+    public String initConverter(ConverterData initData,String name, String code, String note) {
         //实例初始化
-        sort = 0;
-        exist = false;
+        initData.setSort(0);
+        initData.setExist(false);
+
         BaseData converter = checkCodeExist(code);
         if (converter == null) {
-            engineId = StringKit.getUUID();
+            initData.setEngineId(StringKit.getUUID());
             // TODO : 逻辑引擎不存在则执行新建
             sqlEngine addEngine = new sqlEngine().execute("cr_engine", "")
-                    .addData("@id", engineId)
+                    .addData("@id", initData.getEngineId())
                     .addData("@name", name)
                     .addData("@code", code)
                     .addData("@note", note)
@@ -67,45 +70,56 @@ public class sqlConverter implements Serializable {
             baseApi.execute(addEngine);
         } else {
             // TODO : 逻辑引擎存在则变更指令标识为true
-            exist = true;
-            engineId = converter.getString("id");
+            initData.setExist(true);
+            initData.setEngineId(converter.getString("id"));
         }
-        return engineId;
+        return initData.getEngineId();
     }
 
-    public String execute(boolean isChild, String data) {
-        String id = StringKit.getUUID();
-        boolean child = false;
-        sqlEngine addExecute = new sqlEngine().execute("cr_engineexecute", "")
-                .addData("@id", id)
-                .addData("@eid", isChild ? childId : engineId)
-                .addData("@state", "1")
-                .addData("@sorts", isChild ? childSort + "" : sort + "");
-        LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
-        });
-        //TODO : 确认传入字段存在
-        for (String key : params.keySet()) {
-            if (key.equals("childList")) {
-                childId = id;
-                child = true;
-                // TODO : 子查询内循环
-                JSONArray ja = JSONArray.parseArray(params.get(key).toString());
-                for (int j = 0; j < ja.size(); j++) {
-                    JSONObject jo = ja.getJSONObject(j);
-                    execute(true,jo.toJSONString());
+    /**
+     * 核心逻辑节点载入
+     * @param isChild    当前节点是否使用子查询模式
+     * @param data       当前节点预处理JSON值
+     * @return
+     */
+    public String execute(ConverterData initData,boolean isChild, String data) {
+        //如果当前为新创建的引擎（exist = false）且engineId已生成（引擎已创建成功）
+        if(!initData.getExist() && initData.getEngineId() != null){
+            String id = StringKit.getUUID();
+            boolean child = false;
+            sqlEngine addExecute = new sqlEngine().execute("cr_engineexecute", "")
+                    .addData("@id", id)
+                    .addData("@eid", isChild ? initData.getChildId() : initData.getEngineId())
+                    .addData("@state", "1")
+                    .addData("@sorts", isChild ? initData.getChildSort() + "" : initData.getSort() + "");
+            LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
+            });
+            //TODO : 确认传入字段存在
+            for (String key : params.keySet()) {
+                if (key.equals("childList")) {
+                    initData.setChildId(id);
+                    child = true;
+                    // TODO : 子查询内循环
+                    JSONArray ja = JSONArray.parseArray(params.get(key).toString());
+                    for (int j = 0; j < ja.size(); j++) {
+                        JSONObject jo = ja.getJSONObject(j);
+                        execute(initData,true,jo.toJSONString());
+                    }
+                } else {
+                    addExecute.addData("@" + key, params.get(key).toString());
                 }
-            } else {
-                addExecute.addData("@" + key, params.get(key).toString());
             }
-        }
-        addExecute.addData("@isChild", child ? "1" : "0");
-        addExecute.insertFin("");
-        baseApi.execute(addExecute);
-        if(isChild){
-            childSort++;
+            addExecute.addData("@isChild", child ? "1" : "0");
+            addExecute.insertFin("");
+            baseApi.execute(addExecute);
+            if(isChild){
+                initData.setChildSort(initData.getChildSort()+1);
+            }else{
+                initData.setSort(initData.getSort()+1);
+            }
+            return id;
         }else{
-            sort++;
+            return null;
         }
-        return id;
     }
 }

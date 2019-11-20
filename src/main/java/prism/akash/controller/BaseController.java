@@ -5,14 +5,13 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
+import prism.akash.container.converter.ConverterData;
 import prism.akash.container.converter.sqlConverter;
 import prism.akash.container.extend.BaseDataExtends;
+import prism.akash.tools.StringKit;
 import prism.akash.tools.file.FileHandler;
 
 import javax.servlet.http.HttpServletResponse;
@@ -115,16 +114,86 @@ public class BaseController extends BaseDataExtends{
     }
 
     @CrossOrigin(origins = "*", maxAge = 3600)
+    @ResponseBody
     @RequestMapping(value = "/testAddEngine",
             method = RequestMethod.GET,
             produces = "application/json;charset=UTF-8")
     public void testAddEngine(){
-            String strData = "[{\"executeTag\":\"execute\",\"executeData\":\"{\\\"alias\\\":\\\"t0\\\",\\\"tableName\\\":\\\"test0\\\"}\"},{\"executeTag\":\"executeChild\",\"executeData\":\"{\\\"alias\\\":\\\"t0\\\"}\",\"childList\":\"[{\\\"executeTag\\\":\\\"execute\\\",\\\"executeData\\\":\\\"{\\\\\\\"alias\\\\\\\":\\\\\\\"t0\\\\\\\",\\\\\\\"tableName\\\\\\\":\\\\\\\"tables0\\\\\\\"}\\\"},{\\\"executeTag\\\":\\\"selectFin\\\"}]\"},{\"executeTag\":\"appointColumn\",\"executeData\":\"{\\\"appointColumn\\\":\\\"t0\\\",\\\"appointColumns\\\":\\\"id,executetag\\\"}\"},{\"executeTag\":\"queryBuild\",\"executeData\":\"{\\\"exQueryType\\\":\\\"DEF\\\",\\\"conditionType\\\":\\\"EQ\\\",\\\"value\\\":\\\"1\\\",\\\"table\\\":\\\"c0\\\",\\\"key\\\":\\\"@id\\\",\\\"queryType\\\":\\\"and\\\"}\"},{\"executeTag\":\"selectFin\"}]";
-            System.out.println(sqlConverter.initConverter("测试引擎"+i,"test_engine"+i,"测试引擎"+i));
-            JSONArray ja = JSONArray.parseArray(JSON.toJSONString(strData));
-            for (int j = 0; j < ja.size(); j++) {
-                JSONObject jo = ja.getJSONObject(j);
-                System.out.println(sqlConverter.execute(false,jo.toJSONString()));
-            }
+        String i = StringKit.getUUID();
+
+        List<BaseData> list = new ArrayList<>();
+
+        BaseData o1 = new BaseData();
+        o1.put("executeTag", "execute");
+
+        BaseData e1 = new BaseData();
+        e1.put("tableName", "test" + i);
+        e1.put("alias", "t" + i);
+        o1.put("executeData", JSON.toJSONString(e1));
+
+        list.add(o1);
+
+
+        List<BaseData> list2 = new ArrayList<>();
+
+        BaseData z1 = new BaseData();
+        z1.put("executeTag", "execute");
+
+        BaseData zd1 = new BaseData();
+        zd1.put("alias", "t" + i);
+        zd1.put("tableName", "tables" + i);
+
+        z1.put("executeData", JSON.toJSONString(zd1));
+
+        BaseData z4 = new BaseData();
+        z4.put("executeTag", "selectFin");
+        list2.add(z1);
+        list2.add(z4);
+
+        BaseData oo = new BaseData();
+        oo.put("childList", JSON.toJSONString(list2));
+        oo.put("executeTag", "executeChild");
+
+
+        BaseData zz1 = new BaseData();
+        zz1.put("alias", "t" + i);
+        oo.put("executeData", JSON.toJSONString(zz1));
+        list.add(oo);
+
+
+        BaseData o2 = new BaseData();
+        o2.put("executeTag", "appointColumn");
+
+        BaseData e2 = new BaseData();
+        e2.put("appointColumn", "t" + i);
+        e2.put("appointColumns", "id,executetag");
+        o2.put("executeData", JSON.toJSONString(e2));
+        list.add(o2);
+
+
+        BaseData o3 = new BaseData();
+        o3.put("executeTag", "queryBuild");
+
+        BaseData e3 = new BaseData();
+        e3.put("queryType", "and");
+        e3.put("table", "c" + i);
+        e3.put("key", "@id");
+        e3.put("conditionType", "EQ");
+        e3.put("exQueryType", "DEF");
+        e3.put("value", "1");
+        o3.put("executeData", JSON.toJSONString(e3));
+        list.add(o3);
+
+        BaseData o4 = new BaseData();
+        o4.put("executeTag", "selectFin");
+        list.add(o4);
+
+        ConverterData init = new ConverterData();
+        System.out.println(sqlConverter.initConverter(init,"测试引擎_" + i, "t_" + i, "测试引擎_" + i));
+        JSONArray ja = JSONArray.parseArray(JSON.toJSONString(list));
+        for (int j = 0; j < ja.size(); j++) {
+            JSONObject jo = ja.getJSONObject(j);
+            System.out.println(sqlConverter.execute(init,false, jo.toJSONString()));
+        }
     }
 }
