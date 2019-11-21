@@ -2,11 +2,11 @@ package prism.akash.container.converter;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
+import prism.akash.container.converter.builder.ConverterValidator;
 import prism.akash.container.sqlEngine.engineEnum.conditionType;
 import prism.akash.container.sqlEngine.engineEnum.groupType;
 import prism.akash.container.sqlEngine.engineEnum.queryType;
@@ -43,12 +43,17 @@ public class sqlConverter implements Serializable {
     public ConverterData createBuild(String name, String code, String note, String executeData) {
         //初始化引擎创建工具
         ConverterData init = new ConverterData();
-        //创建实例化引擎
-        initConverter(init, name, code, note);
-        //解析核心逻辑数据
-        JSONArray coverArray = JSONArray.parseArray(executeData);
-        for (int i = 0; i < coverArray.size(); i++) {
-            execute(init, false, coverArray.getJSONObject(i).toJSONString());
+        // TODO : # 创建引擎时，code值及配参值必须通过数据校验！（强制-数据安全）
+        init.setErrorMsg(new ConverterValidator(executeData).verification());
+        if(!StringKit.isSpecialChar(code) && init.getErrorMsg() == null){
+            //创建实例化引擎
+            initConverter(init, name, code, note);
+
+            //解析核心逻辑数据
+            JSONArray coverArray = JSONArray.parseArray(executeData);
+            for (int i = 0; i < coverArray.size(); i++) {
+                execute(init, false, coverArray.getJSONObject(i).toJSONString());
+            }
         }
         return init;
     }
@@ -121,8 +126,7 @@ public class sqlConverter implements Serializable {
                     .addData("@eid", isChild ? initData.getChildId() : initData.getEngineId())
                     .addData("@state", "1")
                     .addData("@sorts", isChild ? initData.getChildSort() + "" : initData.getSort() + "");
-            LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
-            });
+            LinkedHashMap<String, Object> params = StringKit.parseLinkedMap(data);
             //TODO : 确认传入字段存在
             for (String key : params.keySet()) {
                 if (key.equals("childList")) {

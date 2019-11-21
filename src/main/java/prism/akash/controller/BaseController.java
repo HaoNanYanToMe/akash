@@ -127,7 +127,7 @@ public class BaseController extends BaseDataExtends{
         o1.put("executeTag", "execute");
 
         BaseData e1 = new BaseData();
-        e1.put("tableName", "test" + i);
+        e1.put("tableName", "'&test" + i);
         e1.put("alias", "t" + i);
         o1.put("executeData", JSON.toJSONString(e1));
 
@@ -188,6 +188,6 @@ public class BaseController extends BaseDataExtends{
         o4.put("executeTag", "selectFin");
         list.add(o4);
 
-        System.out.println(sqlConverter.createBuild("测试引擎_" + i, "t_" + i, "测试引擎_" + i,JSON.toJSONString(list)));
+        System.out.println(JSON.toJSONString(sqlConverter.createBuild("测试引擎_" + i, "t_" + i, "测试引擎_" + i,JSON.toJSONString(list))));
     }
 }

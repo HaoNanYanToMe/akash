@@ -17,3 +17,11 @@
 > + 为保证数据统一性,**BaseApi**中涉及增删改的方法现在已经支持事务操作了
 > + **sqlConverter**增加了数据历史日志以提供数据备份管理
 > + **excelUpLoadParse**优化了对余量数据的处理，同时提升了其对**海量excel**的解析效能
+
+---
+> **2019/11/21 更新日志**
+> + 新增了逻辑引擎数据校验器**ConverterValidator**，极大程度上保证了对应数据的安全性
+> + **StringKit**新增了**parseLinkedMap**方法，现在可以更便捷的将json数据转化为有序的List集合了
+ ```
+          LinkedHashMap<String, Object> params = StringKit.parseLinkedMap(data);
+ ```

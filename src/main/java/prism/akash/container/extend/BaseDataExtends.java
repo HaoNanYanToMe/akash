@@ -11,6 +11,7 @@ import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
 import prism.akash.container.sqlEngine.engineEnum.*;
 import prism.akash.container.sqlEngine.sqlEngine;
+import prism.akash.tools.StringKit;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;
@@ -54,8 +55,7 @@ public class BaseDataExtends implements Serializable {
                 if (colArray.size() > 0) {
                     sqlEngine = new sqlEngine();
                     sqlEngine.execute(colArray.get(0).get("t_code") + "", "");
-                    LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
-                    });
+                    LinkedHashMap<String, Object> params = StringKit.parseLinkedMap(data);
                     //TODO : 确认传入字段存在
                     for (String key : params.keySet()) {
                         for (BaseData col : colArray) {

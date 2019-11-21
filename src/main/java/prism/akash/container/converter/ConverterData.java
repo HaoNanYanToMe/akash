@@ -20,6 +20,16 @@ public class ConverterData {
     //标识：当前子查询逻辑编号
     private String childId;
 
+    //标识：错误信息
+    private String errorMsg;
+
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void setErrorMsg(String errorMsg) {
+        this.errorMsg = errorMsg;
+    }
     public Boolean getExist() {
         return exist;
     }

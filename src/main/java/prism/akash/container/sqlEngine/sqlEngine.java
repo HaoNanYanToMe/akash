@@ -3,7 +3,6 @@ package prism.akash.container.sqlEngine;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,8 +47,7 @@ public class sqlEngine implements Serializable {
     private String assignment(String data, String parseSql) {
         if (!data.equals("")) {
             //TODO: 数据参数赋值操作
-            LinkedHashMap<String, Object> params = JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
-            });
+            LinkedHashMap<String, Object> params = StringKit.parseLinkedMap(data);
 
             String executeParam = engine.get("executeParam") + "";
             for (String key : params.keySet()) {
