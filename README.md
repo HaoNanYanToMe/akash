@@ -25,3 +25,11 @@
  ```
           LinkedHashMap<String, Object> params = StringKit.parseLinkedMap(data);
  ```
+ 
+ ---
+ > **2019/11/29 更新日志**
+ > + 为保证数据准确,sqlEngine取消了对生成的sql进行格式化（小写）转换功能
+ > + 优化了**ConverterValidator**的验证逻辑
+ > + stringKit验证忽略了@_#,四项值
+ > + 优化了**sqlConverter**的逻辑，现在已经支持查看生成的sql及其所需的必要入参值了
+ > + 新增了**cr_engineparam**以来存储引擎所需的核心字段，并在**sqlConverter**增加了对应的逻辑方法**paramBinding**

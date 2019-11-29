@@ -24,12 +24,12 @@ public class StringKit {
 
     /**
      * 判断Column字段是否含有非法字符
-     * TODO ：主要提供给sqlStepBuild校验使用,仅允许及开放使用:_#
+     * TODO ：主要提供给sqlStepBuild校验使用,仅允许及开放使用:_#,@
      * @param str true为包含，false为不包含
      * @return
      */
     public static boolean isSpecialColumn(String str) {
-        String regEx = "[ `~!@$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]|\n|\r|\t";
+        String regEx = "[ `~!$%^&*()+=|{}':;'\\[\\].<>/?~！￥%……&*（）——+|{}【】‘；：”“’。，、？]|\n|\r|\t";
         return isSpecial(regEx,str);
     }
 

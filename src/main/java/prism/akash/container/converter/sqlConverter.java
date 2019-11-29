@@ -1,5 +1,4 @@
 package prism.akash.container.converter;
-
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +6,7 @@ import org.springframework.stereotype.Component;
 import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
 import prism.akash.container.converter.builder.ConverterValidator;
+import prism.akash.container.extend.BaseDataExtends;
 import prism.akash.container.sqlEngine.engineEnum.conditionType;
 import prism.akash.container.sqlEngine.engineEnum.groupType;
 import prism.akash.container.sqlEngine.engineEnum.queryType;
@@ -22,7 +22,7 @@ import java.util.List;
  * TODO : 逻辑引擎编辑转换器
  */
 @Component
-public class sqlConverter implements Serializable {
+public class sqlConverter extends BaseDataExtends implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -54,11 +54,49 @@ public class sqlConverter implements Serializable {
             for (int i = 0; i < coverArray.size(); i++) {
                 execute(init, false, coverArray.getJSONObject(i).toJSONString());
             }
+
+            paramBinding(init);
         }
         return init;
     }
 
-
+    /**
+     * 入参字段信息绑定
+     * @param init     核心引擎数据对象
+     * @return
+     */
+    private ConverterData paramBinding(ConverterData init){
+        // TODO ：获取当前引擎的执行结果
+        BaseData execute = super.invokeDataInteraction(new sqlEngine(), init.getEngineId(), "", false).parseSql();
+        if (execute != null) {
+            init.setExecute(execute);
+            // TODO : 对指定的入参字段进行抽离另存
+            if (execute.get("executeParam") != null){
+                // TODO : 删除当前引擎关联的必要字段信息
+                baseApi.execute(new sqlEngine().execute("cr_engineparam","ce")
+                        .queryBuild(queryType.and,
+                                "ce",
+                                "@engineId",
+                                conditionType.EQ,
+                                groupType.DEF,init.getEngineId()).deleteFin(""));
+                // TODO : 重新进行数据绑定
+                String executeParam =  execute.getString("executeParam");
+                for (String ep : executeParam.split(",")){
+                    if (!ep.equals("")){
+                        String [] codeAndName = ep.split("#");
+                        sqlEngine addParam = new sqlEngine().execute("cr_engineparam", "")
+                                .addData("@id", StringKit.getUUID())
+                                .addData("@name", ep.contains("#")? codeAndName[1] : "")
+                                .addData("@code", codeAndName[0])
+                                .addData("@engineId", init.getEngineId())
+                                .insertFin("");
+                        baseApi.execute(addParam);
+                    }
+                }
+            }
+        }
+        return init;
+    }
     /**
      * 检查当前引擎Code值是否已被使用
      *

@@ -526,6 +526,8 @@ public class sqlEngine implements Serializable {
      */
     public sqlEngine executeChild(sqlEngine table, String alias) {
         engine.put("execute", "(" + table.engine.get("select") + ") AS " + alias);
+        // TODO : 子查询内循环需求入参对象值
+        engine.put("executeParam", table.engine.get("executeParam"));
         return this;
     }
 
@@ -702,10 +704,10 @@ public class sqlEngine implements Serializable {
         sel.append(fromSql)
                 .append(engine.get("dataPaging") == null ? "" : engine.get("dataPaging"));
 
-        String parseSql = sel.toString().toLowerCase();
+        String parseSql = sel.toString();
 
         engine.put("select", this.assignment(data, parseSql));
-        engine.put("fromSql", this.assignment(data, fromSql.toString().toLowerCase()));
+        engine.put("fromSql", this.assignment(data, fromSql.toString()));
         //TODO : 清空并重置当前引擎装载的参数
         this.isGroup = false;
         engine.remove("execute");
@@ -825,7 +827,7 @@ public class sqlEngine implements Serializable {
                 .append(" SET ").append(keys)
                 .append(engine.get("query") == null ? "" : (" WHERE " + engine.get("query")));
 
-        engine.put("executeSql", this.assignment(data, updateSql.toString().toLowerCase()));
+        engine.put("executeSql", this.assignment(data, updateSql.toString()));
         //TODO : 清空并重置当前引擎装载的参数
         engine.remove("tableName");
         engine.remove("alias");
@@ -874,10 +876,10 @@ public class sqlEngine implements Serializable {
             } else {
                 insertSql.append(" ) ").append(engine.get("copyData"));
             }
-            engine.put("executeSql", this.assignment(data, insertSql.toString().toLowerCase()));
+            engine.put("executeSql", this.assignment(data, insertSql.toString()));
         }else{
             insertSql.append(" ) VALUES ").append(values);
-            engine.put("executeSql", insertSql.toString().toLowerCase());
+            engine.put("executeSql", insertSql.toString());
         }
 
         //TODO : 清空并重置当前引擎装载的参数
@@ -939,7 +941,7 @@ public class sqlEngine implements Serializable {
                 .append(dataSort.substring(0, dataSort.length() - 1))
                 .append(engine.get("dataPaging") == null ? "" : engine.get("dataPaging"));
 
-        engine.put("executeSql", this.assignment(data, deleteSql.toString().toLowerCase()));
+        engine.put("executeSql", this.assignment(data, deleteSql.toString()));
         //TODO : 清空并重置当前引擎装载的参数
         engine.remove("tableName");
         engine.remove("alias");

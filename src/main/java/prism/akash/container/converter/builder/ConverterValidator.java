@@ -6,6 +6,8 @@ import prism.akash.tools.StringKit;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * TODO : 数据逻辑引擎信息有效性
@@ -29,15 +31,20 @@ public class ConverterValidator implements Serializable {
      * @return
      */
     public String  verification(){
-        String error = null;
+        Map error = null;
         JSONArray coverArray = JSONArray.parseArray(executeListData);
+        boolean errs = false;
         for (int i = 0; i < coverArray.size(); i++) {
             error = checkError(coverArray.getJSONObject(i).toJSONString());
-            if (error!=null){
-                break;
+            Object err = error.get("err");
+            if (err!= null){
+                errs = (boolean)err;
+                if (errs){
+                    break;
+                }
             }
         }
-        return error;
+        return errs ? error.get("result") + "" : null;
     }
 
     /**
@@ -45,8 +52,8 @@ public class ConverterValidator implements Serializable {
      * @param data
      * @return
      */
-    private String checkError(String data){
-        String KeyError = null;
+    private Map checkError(String data){
+        Map KeyError = null;
         LinkedHashMap<String, Object> params = StringKit.parseLinkedMap(data);
         //TODO : 确认传入字段存在
         for (String key : params.keySet()) {
@@ -71,7 +78,9 @@ public class ConverterValidator implements Serializable {
      * @param data      执行校验的数据
      * @return
      */
-    private String loopData(String result,String data){
+    private Map loopData(String result, String data){
+        Map res = new ConcurrentHashMap();
+        boolean err = false;
         if(data!=null){
             if (data.contains("{")){
                 LinkedHashMap<String, Object> mapData = StringKit.parseLinkedMap(data);
@@ -85,6 +94,7 @@ public class ConverterValidator implements Serializable {
                         if(!key.contains("value")){
                             if(StringKit.isSpecialColumn(value)){
                                 result =  result + "->" + key;
+                                err = true;
                                 break;
                             }
                         }
@@ -93,6 +103,8 @@ public class ConverterValidator implements Serializable {
                 }
             }
         }
-        return result;
+        res.put("result",result);
+        res.put("err",err);
+        return res;
     }
 }

@@ -3,7 +3,6 @@ package prism.akash.container.extend;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,22 +86,21 @@ public class BaseDataExtends implements Serializable {
         if (!engineId.trim().equals("")) {
             BaseData sel = new BaseData();
             sel.put("eid", engineId);
-            sel.put("state", "0");
             //TODO: 判断当前是否为嵌套子查询
             List<BaseData> engineFlow = baseApi.selectBase(isChild ?
                     new sqlEngine()
                             .execute("cr_engineexecute", "e")
                             .queryBuild(queryType.and, "e", "eid", conditionType.EQ, null,"eid")
-                            .queryBuild(queryType.and, "e", "state", conditionType.EQ, null, "state")
+                            .queryBuild(queryType.and, "e", "@state", conditionType.EQ, null, "1")
                             .dataSort("e", "sorts", sortType.ASC)
                             .selectFin(JSON.toJSONString(sel))
                     :
                     new sqlEngine()
                             .execute("cr_engineexecute", "e")
-                            .joinBuild("engineList", "en", joinType.L).joinColunm("e", "eid", "id").joinFin()
+                            .joinBuild("cr_engine", "en", joinType.L).joinColunm("e", "eid", "id").joinFin()
                             .queryBuild(queryType.and, "e", "eid", conditionType.EQ, null,"eid")
-                            .queryBuild(queryType.and, "en", "state", conditionType.EQ, null, "state")
-                            .queryBuild(queryType.and, "e", "state", conditionType.EQ, null, "state")
+                            .queryBuild(queryType.and, "en", "@state", conditionType.EQ, null, "0")
+                            .queryBuild(queryType.and, "e", "@state", conditionType.EQ, null, "1")
                             .dataSort("e", "sorts", sortType.ASC)
                             .selectFin(JSON.toJSONString(sel)));
             if (engineFlow.size() > 0) {

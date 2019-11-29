@@ -1,5 +1,7 @@
 package prism.akash.container.converter;
 
+import prism.akash.container.BaseData;
+
 /**
  * 逻辑引擎初始化数据
  */
@@ -22,6 +24,21 @@ public class ConverterData {
 
     //标识：错误信息
     private String errorMsg;
+
+    //标识：数据执行结果
+    private BaseData execute;
+
+    public BaseData getExecute() {
+        return execute;
+    }
+
+    public void setExecute(BaseData execute) {
+        // TODO : 敏感信息屏蔽
+        execute.remove("queryTable");
+        execute.remove("fromSql");
+        execute.remove("appointColumn");
+        this.execute = execute;
+    }
 
     public String getErrorMsg() {
         return errorMsg;
