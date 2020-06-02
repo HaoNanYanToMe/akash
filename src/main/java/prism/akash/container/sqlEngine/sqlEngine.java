@@ -20,10 +20,19 @@ public class sqlEngine implements Serializable {
 
     BaseData engine = null;
     boolean isGroup = false;
-
+    boolean isExecute = false;
+    //执行-提前判别数据有效性
+    String dataList = "";
 
     public sqlEngine() {
         engine = new BaseData();
+    }
+
+    //执行时调用
+    public sqlEngine(String data){
+        engine = new BaseData();
+        isExecute = true;
+        dataList = data == null ? "[]" : data;
     }
 
     /**
@@ -53,13 +62,14 @@ public class sqlEngine implements Serializable {
             for (String key : params.keySet()) {
                 parseSql = parseSql.replaceAll("params_" + key, params.get(key) + "");
                 //TODO : 将已传参的参数消除
-                executeParam.replaceAll(key, "");
+                executeParam = executeParam.replaceAll(key, "");
             }
 
             //TODO : 将未传参的参数统一变更为NULL
             for (String notParam : executeParam.split(",")) {
                 if (!notParam.equals("")) {
-                    parseSql = parseSql.replaceAll("'params_" + notParam + "'", "NULL");
+                    // TODO : trim清空空格
+                    parseSql = parseSql.replaceAll("'params_" + notParam.trim() + "'", "NULL");
                 }
             }
         }
@@ -92,6 +102,13 @@ public class sqlEngine implements Serializable {
         String key = engine.getString("queryKey");
         //TODO : 获取锁定标识，当查询Key值带有@，value将直接作为参数使用，反之则作为常量占位符
         if (key.contains("@")) {
+            /**
+             * 判断标识中是否含有#标记，若有则表示为字段匹配
+             */
+            if (key.contains("#")) {
+                engine.put("exType", "-");
+                key = key.replaceAll("#", "");
+            }
             engine.put("queryValue", value);
             engine.put("queryKey", key.replaceAll("@", ""));
         } else {
@@ -105,28 +122,47 @@ public class sqlEngine implements Serializable {
     }
 
     /**
-     * 暂未开放此功能项（已废弃）
-     *
-     * @param caseTable
-     * @param caseColumn
-     * @param caseAlias
+     * case构造器
+     * @param caseAlias  a#b  code#注释
      * @return
      */
-    private sqlEngine caseBuild(String caseTable, String caseColumn, String caseAlias) {
-        engine.put("caseTable", caseTable);
-        engine.put("caseColumn", caseColumn);
-        engine.put("caseAlias", caseAlias == null ? caseTable + "_" + caseColumn : caseAlias);
-        return this;
-    }
-
     public sqlEngine caseBuild(String caseAlias) {
-        engine.put("caseAlias", StringEscapeUtils.escapeSql(caseAlias));
+        String alias = StringEscapeUtils.escapeSql(caseAlias);
+        engine.put("caseAlias", alias.split("#")[0]);
+        //2020-06-01新增：回显数据
+        if (engine.get("outFiled") == null) {
+            engine.put("outFiled", alias);
+        } else {
+            engine.put("outFiled", engine.get("outFiled").toString() + "," + alias);
+        }
         return this;
     }
 
     public sqlEngine caseWhenQuery(queryType whenQuery, String whenTable, String whenColumn, conditionType whenCondition, groupType exCaseType, String whenValue) {
         //TODO: 调用queryBuild获取筛选条件
         this.queryBuild(whenQuery, whenTable, whenColumn, whenCondition, exCaseType, whenValue);
+        engine.put("caseWhenQuery", engine.get("caseWhenQuery") == null ? engine.get("query") : engine.get("caseWhenQuery") + whenQuery.getQueryType() + engine.get("query"));
+        //将生产好的查询语句转存后清空
+        engine.remove("query");
+        return this;
+    }
+
+    /**
+     * 新增：caseWhen支持使用引擎关联
+     * @param whenQuery
+     * @param whenTable
+     * @param whenColumn
+     * @param whenCondition
+     * @param exCaseType
+     * @param child
+     * @return
+     */
+    public sqlEngine caseWhenQueryChild(queryType whenQuery, String whenTable, String whenColumn, conditionType whenCondition, groupType exCaseType, sqlEngine child) {
+        //TODO: 调用queryBuild获取筛选条件
+        this.isGroup = false;
+        engine.put("child", "child");
+        this.queryType(whenQuery).queryTable(whenTable).queryKey(whenColumn).queryConditionType(whenCondition).queryValue("(" + child.engine.get("select") + ")").queryFin(true);
+
         engine.put("caseWhenQuery", engine.get("caseWhenQuery") == null ? engine.get("query") : engine.get("caseWhenQuery") + whenQuery.getQueryType() + engine.get("query"));
         //将生产好的查询语句转存后清空
         engine.remove("query");
@@ -143,10 +179,10 @@ public class sqlEngine implements Serializable {
     }
 
     public sqlEngine caseFin(String elseValue) {
-        StringBuffer caseFin = new StringBuffer(" CASE ");
+        StringBuffer caseFin = new StringBuffer(" case ");
         caseFin.append(engine.get("caseQuery"))
-                .append(" ELSE '").append(elseValue)
-                .append("' END AS ").append(engine.get("caseAlias"));
+                .append(" else '").append(elseValue)
+                .append("' end as ").append(engine.get("caseAlias"));
 //                .append(engine.get("caseTable")).append(".").append(engine.get("caseColumn"))
 //                .append(" ")
         engine.put("caseFin", caseFin);
@@ -171,15 +207,65 @@ public class sqlEngine implements Serializable {
 
         StringBuffer query = new StringBuffer();
 
+
         //TODO : 若queryType未填写,则默认使用and作为连接条件
         String queryType = engine.get("queryType") == null ? "and" : engine.getString("queryType");
         //TODO : 如果当前引擎查询语句未生成,则忽略queryType指向
         if (engine.get(queryName) == null) {
             query.append(" ").append(queryType.contains("Merge") ? " (" : "");
         } else {
-            query.append(" ").append(queryType.contains("Merge") ? queryType.contains("and") ? " and (" : " or (" : queryType).append(" ");
+            String end = queryType.contains("End") ? " " : " (";
+            query.append(" ").append(queryType.contains("Merge") ? queryType.contains("and") ? " and" + end : " or" + end : queryType).append(" ");
         }
 
+        //TODO：2020/06/02 解决入参NULL值出现错误的问题。
+        //鉴别是生成还是执行
+        if (isExecute){
+            if(engine.getString("queryValue").indexOf("params_") > -1) {
+                LinkedHashMap<String, Object> params = StringKit.parseLinkedMap(dataList);
+                if (params.size() > 0) {
+                    for (String key : params.keySet()) {
+                        //判断key是否为null
+                        if (("params_" + key).equals(engine.get("queryValue"))) {
+                            if(params.get(key) != null){
+                                queryBind(query);
+                            }else{
+                                query.append(" 1 = 1 ");
+                            }
+                        }
+                    }
+                } else {
+                    queryBind(query);
+                }
+            }else{
+                queryBind(query);
+            }
+        }else{
+            queryBind(query);
+        }
+
+        //TODO : 判断本次组合查询是否已结束
+        if (queryType.contains("End")) {
+            query.append(" ) ");
+        }
+
+        engine.remove("queryType");
+        engine.remove("conditionType");
+        engine.remove("queryKey");
+        engine.remove("queryValue");
+        engine.remove("exType");
+
+        //TODO : 将生成的查询语句保存在引擎对象
+        engine.put(queryName, (engine.get(queryName) == null ? " " : engine.getString(queryName)) + " " + query);
+        return this;
+    }
+
+    /**
+     * queryFin方法提出
+     * @param query
+     * @return
+     */
+    private StringBuffer queryBind(StringBuffer query){
         if (engine.get("queryTable") != null) {
             query.append(engine.get("queryTable")).append(".");
         }
@@ -210,17 +296,17 @@ public class sqlEngine implements Serializable {
                 query.deleteCharAt(query.length() - 1).append(")");
             } else if (conditionType.contains("BET")) {
                 query.append("'").append(queryValue.split(",")[0]).append("'");
-                query.append(" AND ");
+                query.append(" and ");
                 query.append("'").append(queryValue.split(",")[1]).append("'");
             } else if (conditionType.equals(" LIKE ")) {
                 query.append(" '").append(isEscape ? queryValue.split("\\|")[1] : queryValue)
-                        .append("' ").append(isEscape ? ("ESCAPE '" + queryValue.split("\\|")[0] + "'") : "");
+                        .append("' ").append(isEscape ? ("escape '" + queryValue.split("\\|")[0] + "'") : "");
             } else if (conditionType.equals(" NOT LIKE ")) {
                 query.append(" '").append(isEscape ? queryValue.split("\\|")[1] : queryValue)
-                        .append("' ").append(isEscape ? ("ESCAPE '" + queryValue.split("\\|")[0] + "'") : "");
+                        .append("' ").append(isEscape ? ("escape '" + queryValue.split("\\|")[0] + "'") : "");
             } else if (conditionType.equals(" LIKE BINARY ")) {
-                query.append(" CONCAT ('%',UPPER('").append(isEscape ? queryValue.split("\\|")[1] : queryValue).append("','%')")
-                        .append("' ").append(isEscape ? ("ESCAPE '" + queryValue.split("\\|")[0] + "'") : "");
+                query.append(" concat ('%',upper('").append(isEscape ? queryValue.split("\\|")[1] : queryValue).append("','%')")
+                        .append("' ").append(isEscape ? ("escape '" + queryValue.split("\\|")[0] + "'") : "");
             }
 
         } else {
@@ -236,21 +322,7 @@ public class sqlEngine implements Serializable {
                 query.append(engine.get("queryValue"));
             }
         }
-
-        //TODO : 判断本次组合查询是否已结束
-        if (queryType.contains("End")) {
-            query.append(" ) ");
-        }
-
-        engine.remove("queryType");
-        engine.remove("conditionType");
-        engine.remove("queryKey");
-        engine.remove("queryValue");
-        engine.remove("exType");
-
-        //TODO : 将生成的查询语句保存在引擎对象
-        engine.put(queryName, (engine.get(queryName) == null ? " " : engine.getString(queryName)) + " " + query);
-        return this;
+        return query;
     }
 
     /**
@@ -296,7 +368,7 @@ public class sqlEngine implements Serializable {
         if (engine.get("groupBy") == null) {
             engine.put("groupBy", groupBy);
         } else {
-            engine.put("groupBy", engine.getString("groupBy") + groupBy);
+            engine.put("groupBy", engine.get("groupBy") + "" + groupBy);
         }
 
         engine.put("groupBy", groupBy);
@@ -348,7 +420,7 @@ public class sqlEngine implements Serializable {
                     appoint.append("'").append(col.replaceAll("@", "")).append("'");
                 } else {
                     if (col.contains("#")) {
-                        appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col.split("#")[0]).append(isExAppoint ? " AS " : ") AS ").append(col.split("#")[1]).append(",");
+                        appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col.split("#")[0]).append(isExAppoint ? " as " : ") as ").append(col.split("#")[1]).append(",");
                     } else {
                         appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col).append(isExAppoint ? "," : "),");
                     }
@@ -359,8 +431,16 @@ public class sqlEngine implements Serializable {
 
         if (engine.get("appointColumn") == null) {
             engine.put("appointColumn", appoint);
+
         } else {
             engine.put("appointColumn", engine.get("appointColumn").toString() + "," + appoint);
+
+        }
+        //输出字段
+        if (engine.get("outFiled") == null) {
+            engine.put("outFiled", appoint);
+        }else{
+            engine.put("outFiled", engine.get("outFiled").toString() + "," + appoint);
         }
         return this;
     }
@@ -404,7 +484,7 @@ public class sqlEngine implements Serializable {
                 }
                 //TODO: 增加别名
                 if (!alias.equals("")) {
-                    groupColumn.append(" AS ").append(alias);
+                    groupColumn.append(" as ").append(alias);
                 }
                 groupColumn.append(" ,");
             }
@@ -504,6 +584,14 @@ public class sqlEngine implements Serializable {
     }
 
     /**
+     * 嵌套子查询条件构造器(连表)
+     */
+    public sqlEngine joinWhereChild(queryType queryType, String table, String key, conditionType conditionType, sqlEngine child) {
+        this.isGroup = false;
+        engine.put("child", "child");
+        return this.queryType(queryType).queryTable(table).queryKey(key).queryConditionType(conditionType).queryValue("(" + child.engine.get("select") + ")").queryFin(false);
+    }
+    /**
      * 指定主表
      *
      * @param tableName 主表的表名
@@ -513,7 +601,7 @@ public class sqlEngine implements Serializable {
         alias = alias == null || alias.trim().equals("") ? tableName : alias;
         engine.put("tableName", tableName);
         engine.put("alias", alias == null ? tableName : alias);
-        engine.put("execute", tableName + " AS " + alias);
+        engine.put("execute", tableName + " as " + alias);
         return this;
     }
 
@@ -525,7 +613,7 @@ public class sqlEngine implements Serializable {
      * @return
      */
     public sqlEngine executeChild(sqlEngine table, String alias) {
-        engine.put("execute", "(" + table.engine.get("select") + ") AS " + alias);
+        engine.put("execute", "(" + table.engine.get("select") + ") as " + alias);
         // TODO : 子查询内循环需求入参对象值
         engine.put("executeParam", table.engine.get("executeParam"));
         return this;
@@ -535,13 +623,14 @@ public class sqlEngine implements Serializable {
      * 主子表筛选条件（非必要,请根据实际业务进行使用）
      *
      * @param queryType
+     * @param table
      * @param key
      * @param conditionType
      * @param value
      * @return
      */
-    public sqlEngine joinWhere(queryType queryType, String key, conditionType conditionType, String value) {
-        return this.queryType(queryType).queryKey(key).queryConditionType(conditionType).queryValue(value).queryFin(false);
+    public sqlEngine joinWhere(queryType queryType, String table, String key, conditionType conditionType, String value) {
+        return this.queryType(queryType).queryTable(table).queryKey(key).queryConditionType(conditionType).queryValue(value).queryFin(false);
     }
 
 
@@ -591,17 +680,20 @@ public class sqlEngine implements Serializable {
         jo.append(engine.get("join") == null ? "" : engine.get("join"))
                 .append(engine.get("joinType") == null ? joinType.L.getJoinType() : engine.get("joinType"))
                 .append(engine.get("joinTable"))
-                .append(" ")
+                .append(engine.get("joinType") != " , " ? " " : " as ")
                 .append(engine.get("joinTableAlias"))
                 .append(" ");
         //TODO: 对主子表关联条件进行匹配
         if (engine.get("joinQuery") == null) {
-            jo.append("ON")
-                    .append(" ")
-                    .append(engine.get("joinColumn"))
-                    .append(" ");
+            //判断是否为普通连接
+            if(engine.get("joinType") != " , "){
+                jo.append("on")
+                        .append(" ")
+                        .append(engine.get("joinColumn"))
+                        .append(" ");
+            }
         } else {
-            jo.append(" WHERE ").append(engine.get("joinQuery"));
+            jo.append(" where ").append(engine.get("joinQuery"));
         }
         engine.put("join", jo.toString());
         //TODO: 重置主子表筛选条件属性
@@ -620,14 +712,28 @@ public class sqlEngine implements Serializable {
      */
     public sqlEngine dataPaging(String pageNo, String pageSize) {
         StringBuffer sb = new StringBuffer();
-        sb.append(" LIMIT ");
-        sb.append("params_").append(StringEscapeUtils.escapeSql(pageNo.split("#")[0]));
+        sb.append(" limit ");
+        String no = pageNo.split("#")[0];
+        String size = pageSize.split("#")[0];
+        //分离数据，区分是否为动态参数
+        if(!no.contains("@")){
+            sb.append("params_").append(StringEscapeUtils.escapeSql(no.replaceAll("\\@","")));
+        }else{
+            sb.append(StringEscapeUtils.escapeSql(no.replaceAll("\\@","")));
+        }
         sb.append(",");
-        sb.append("params_").append(StringEscapeUtils.escapeSql(pageSize.split("#")[0]));
+        if(!size.contains("@")){
+            sb.append("params_").append(StringEscapeUtils.escapeSql(size.replaceAll("\\@","")));
+        }else{
+            sb.append(StringEscapeUtils.escapeSql(size.replaceAll("\\@","")));
+        }
         engine.put("dataPaging", sb.toString());
         //TODO : 动态参数另存为
-        String params = pageNo + "," + pageSize;
-        engine.put("executeParam", engine.get("executeParam") == null ? params : (engine.get("executeParam") + ", " + params));
+        //首要条件：关键参数内不含固定参数标记@
+        if(!size.contains("@") && !no.contains("@")) {
+            String params = pageNo + "," + pageSize;
+            engine.put("executeParam", engine.get("executeParam") == null ? params : (engine.get("executeParam") + ", " + params));
+        }
         return this;
     }
 
@@ -639,22 +745,22 @@ public class sqlEngine implements Serializable {
      * @return
      */
     public sqlEngine dataSort(String table,String key, sortType sortType) {
-        StringBuffer sort = new StringBuffer(" ORDER BY ");
+        StringBuffer sort = new StringBuffer(" order by ");
         String sortTypeStr = sortType.getSortType();
 
         key = table + "." + key;
         switch (sortTypeStr) {
             case "ASC":
-                sort.append(" " + key + " ASC,");
+                sort.append(" " + key + " asc,");
                 break;
             case "UASC":
-                sort.append("  CONVERT( " + key + " USING GBK)  ASC,");
+                sort.append("  convert( " + key + " using gbk)  asc,");
                 break;
             case "UDESC":
-                sort.append("  CONVERT( " + key + " USING GBK)  DESC,");
+                sort.append("  convert( " + key + " using gbk)  desc,");
                 break;
             default:
-                sort.append(" " + key + " DESC,");
+                sort.append(" " + key + " desc,");
                 break;
         }
 
@@ -676,7 +782,7 @@ public class sqlEngine implements Serializable {
         boolean groupFin = engine.get("groupColumn") == null;
 
 
-        sel.append(" SELECT ").append(caseFin ? " " : engine.get("caseFin"));
+        sel.append(" select ").append(caseFin ? " " : engine.get("caseFin"));
 
         //当三个查询均为null时，默认为查询全部
         if (caseFin && appointFin && groupFin){
@@ -685,20 +791,19 @@ public class sqlEngine implements Serializable {
             //TODO: 首先判断查询字段是否存在，如不存在则判断case语句是否存在，若存在则不做任何操作反则查询全部，若字段存在，则在case语句句柄末尾添加逗号防止sql生成出错
             if(this.isGroup){
                 sel.append(groupFin ? " " : (caseFin ? " " : " , ") + engine.get("groupColumn"));
-                sel.append(appointFin ? " " : " , ");
             }
             sel.append(appointFin ? " " : (caseFin ? " " : " , ") + engine.get("appointColumn"));
         }
 
         //TODO : 将from子句抽离，提供计算总条数方法使用
         StringBuffer fromSql = new StringBuffer();
-        fromSql.append(" FROM ")
+        fromSql.append(" from ")
                 .append(engine.get("execute"))
                 .append(" ")
                 .append(engine.get("join") == null ? "" : engine.get("join"))
-                .append(engine.get("query") == null ? "" : (" WHERE " + engine.get("query")))
-                .append(engine.get("groupBy") == null ? "" : (" GROUP BY " + engine.get("groupBy")))
-                .append(engine.get("groupQuery") == null ? "" : (" HAVING " + engine.get("groupQuery")))
+                .append(engine.get("query") == null ? "" : (" where " + engine.get("query")))
+                .append(engine.get("groupBy") == null ? "" : (" group by " + engine.get("groupBy")))
+                .append(engine.get("groupQuery") == null ? "" : (" having " + engine.get("groupQuery")))
                 .append(dataSort.substring(0, dataSort.length() - 1));
 
         sel.append(fromSql)
@@ -822,10 +927,10 @@ public class sqlEngine implements Serializable {
         keys = keys.substring(0,1).equals(",") ? keys.substring(1,keys.length()) : keys;
 
 
-        updateSql.append("UPDATE ").append(engine.get("tableName")).append(" ")
+        updateSql.append("update ").append(engine.get("tableName")).append(" ")
                 .append(engine.get("alias") == null ? engine.get("tableName") : engine.get("alias"))
-                .append(" SET ").append(keys)
-                .append(engine.get("query") == null ? "" : (" WHERE " + engine.get("query")));
+                .append(" set ").append(keys)
+                .append(engine.get("query") == null ? "" : (" where " + engine.get("query")));
 
         engine.put("executeSql", this.assignment(data, updateSql.toString()));
         //TODO : 清空并重置当前引擎装载的参数
@@ -864,21 +969,21 @@ public class sqlEngine implements Serializable {
         String keys = engine.get("addKeys").toString();
         keys = keys.substring(0,1).equals(",") ? keys.substring(1,keys.length()) : keys;
 
-        insertSql.append("INSERT INTO ").append(engine.get("tableName"))
+        insertSql.append("insert into ").append(engine.get("tableName"))
                 .append(" ( ").append(keys);
 
         String values = engine.get("addvalues").toString();
         values = values.substring(0,1).equals(",") ? values.substring(1,values.length()) : values;
         if(engine.get("fetch") == null){
             if (engine.get("copyData") == null) {
-                insertSql.append(" ) VALUES (")
+                insertSql.append(" ) values (")
                         .append(values).append(")");
             } else {
                 insertSql.append(" ) ").append(engine.get("copyData"));
             }
             engine.put("executeSql", this.assignment(data, insertSql.toString()));
         }else{
-            insertSql.append(" ) VALUES ").append(values);
+            insertSql.append(" ) values ").append(values);
             engine.put("executeSql", insertSql.toString());
         }
 
@@ -935,9 +1040,9 @@ public class sqlEngine implements Serializable {
         StringBuffer deleteSql = new StringBuffer();
         String dataSort = engine.get("dataSort") == null ? " " : engine.get("dataSort").toString();
 
-        deleteSql.append(" DELETE ").append(engine.get("alias")).append(" FROM ")
-                .append(engine.get("tableName")).append(" AS ").append(engine.get("alias"))
-                .append(engine.get("query") == null ? "" : (" WHERE " + engine.get("query")))
+        deleteSql.append(" delete ").append(engine.get("alias")).append(" FROM ")
+                .append(engine.get("tableName")).append(" as ").append(engine.get("alias"))
+                .append(engine.get("query") == null ? "" : (" where " + engine.get("query")))
                 .append(dataSort.substring(0, dataSort.length() - 1))
                 .append(engine.get("dataPaging") == null ? "" : engine.get("dataPaging"));
 

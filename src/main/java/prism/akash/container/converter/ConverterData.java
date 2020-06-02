@@ -10,6 +10,9 @@ public class ConverterData {
     //标识：当前引擎是否已存在
     private Boolean exist = false;
 
+    //标识：当前执行逻辑版本号
+    private Integer version = 0;
+
     //标识：当前执行逻辑标准序列值
     private Integer sort = 0;
 
@@ -38,6 +41,14 @@ public class ConverterData {
         execute.remove("fromSql");
         execute.remove("appointColumn");
         this.execute = execute;
+    }
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
     }
 
     public String getErrorMsg() {

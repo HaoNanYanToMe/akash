@@ -100,6 +100,7 @@ public class BaseDataExtends implements Serializable {
                             .joinBuild("cr_engine", "en", joinType.L).joinColunm("e", "eid", "id").joinFin()
                             .queryBuild(queryType.and, "e", "eid", conditionType.EQ, null,"eid")
                             .queryBuild(queryType.and, "en", "@state", conditionType.EQ, null, "0")
+                            .queryBuild(queryType.and, "en", "@engineType", conditionType.EQ, null, "0")
                             .queryBuild(queryType.and, "e", "@state", conditionType.EQ, null, "1")
                             .dataSort("e", "sorts", sortType.ASC)
                             .selectFin(JSON.toJSONString(sel)));
@@ -133,16 +134,22 @@ public class BaseDataExtends implements Serializable {
                                         break;
                                     case "joinWhere":
                                         sqlEngine.joinWhere(queryType.getQueryType(jo.getString("queryType"))
-                                                , jo.get("key") + "",
+                                                , jo.get("table") + "",jo.get("key") + "",
                                                 conditionType.getconditionType(jo.getString("conditionType")),
                                                 jo.get("value") + "");
+                                        break;
+                                    case "joinWhereChild":
+                                        sqlEngine.joinWhereChild(queryType.getQueryType(jo.getString("queryType"))
+                                                , jo.get("table") + "", jo.get("key") + ""
+                                                , conditionType.getconditionType(jo.getString("conditionType"))
+                                                , this.invokeDataInteraction(new sqlEngine(), bd.getString("id"), data, true));
                                         break;
                                     case "joinBuild":
                                         sqlEngine.joinBuild(jo.get("joinTable") + "", jo.get("joinAlias") + "", joinType.getJoinType(jo.getString("joinType")));
                                         break;
                                     case "joinChildBuild":
                                         sqlEngine.joinChildBuild(this.invokeDataInteraction(new sqlEngine(),
-                                                bd.getString("id"), data, true), jo.get("joinAlias") + "",
+                                                JSON.parseObject(bd.getString("executeData")).get("id")+"", data, true), jo.get("joinAlias") + "",
                                                 joinType.getJoinType(jo.getString("joinType")));
                                         break;
                                     case "joinColunm":
@@ -164,6 +171,13 @@ public class BaseDataExtends implements Serializable {
                                                 , conditionType.getconditionType(jo.getString("whenCondition"))
                                                 , groupType.getgroupType(jo.getString("exCaseType"))
                                                 , jo.get("whenValue") + "");
+                                        break;
+                                    case "caseWhenQueryChild":
+                                        sqlEngine.caseWhenQueryChild(queryType.getQueryType(jo.getString("whenQuery"))
+                                                , jo.get("whenTable") + "", jo.get("whenColumn") + ""
+                                                , conditionType.getconditionType(jo.getString("whenCondition"))
+                                                , groupType.getgroupType(jo.getString("exCaseType"))
+                                                , this.invokeDataInteraction(new sqlEngine(), bd.getString("id"), data, true));
                                         break;
                                     case "caseThen":
                                         sqlEngine.caseThen(jo.get("thenValue") + "");

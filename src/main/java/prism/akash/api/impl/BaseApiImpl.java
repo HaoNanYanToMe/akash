@@ -17,7 +17,10 @@ import prism.akash.dataInteraction.BaseInteraction;
 import prism.akash.tools.StringKit;
 import prism.akash.tools.logger.CoreLogger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component("baseApiImpl")
@@ -30,7 +33,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
 
     private BaseData getEngineData(String id, String executeData){
         return super.invokeDataInteraction(
-                new sqlEngine(),
+                new sqlEngine(executeData),
                 id, executeData,
                 false)
                 .parseSql();
@@ -89,6 +92,8 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
         BaseData insertTable = new BaseData();
         BaseData updateTable = new BaseData();
         String[] tables = table.split("#");
+        //TODO: 获取最新的数据版本号
+        int version = 0;
         //TODO: 获取系统内已有表信息
         List<BaseData> tableList = this.selectBase(new sqlEngine()
                 .execute("cr_tables", "t")
@@ -96,17 +101,18 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                 .selectFin(""));
         if(tableList.size() > 0){
             tid = tableList.get(0).getString("id");
+            version = Integer.parseInt(tableList.get(0).get("version")+"") + 1;
             //TODO: 执行数据更新
-            updateTable.put("executeSql", "update cr_tables set code = '" + tables[0] + "',name = '" + tables[1] + "' where id = '" + tid + "'");
+            updateTable.put("executeSql", "update cr_tables set code = '" + tables[0] + "',name = '" + tables[1] + "',version = '" + version + "' where id = '" + tid + "'");
             suc = baseInteraction.execute(updateTable);
         }else{
             insertTable.put("executeSql",
-                    "INSERT INTO cr_tables (id,code,name,state) VALUES ('" + tid + "','" + tables[0] + "','" + tables[1] + "',1)");
+                    "INSERT INTO cr_tables (id,code,name,state,version) VALUES ('" + tid + "','" + tables[0] + "','" + tables[1] + "',1,'" + version + "')");
             suc = baseInteraction.execute(insertTable);
         }
         if (suc == 1) {
             //TODO: 新增或更新表成功后执行
-            coreLogger.reCordLogger("0", tables[0], tableList.size() > 0 ? "2" : "0", tid, tableList.size() > 0 ? tid : "");
+            coreLogger.reCordLogger("0", tables[0], tableList.size() > 0 ? "2" : "0", tid, version + "");
 
             //TODO: 同步字段表数据时，会批量更新先前数据状态为禁用（误操作保护）后重新提交创建
             baseInteraction.execute(new sqlEngine()
@@ -121,7 +127,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
 
             //TODO: 方法迁移
             List<BaseData> fetch = new ArrayList<>();
-            String keys = "id,code,name,tid,type,size,sorts,state";
+            String keys = "id,code,name,tid,type,size,sorts,state,version";
             int sorts = 1;
             for (String key : params.keySet()) {
                 String[] dataAttribute = params.get(key).toString().split("\\|\\|");
@@ -134,10 +140,9 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                 fe.put("size", dataAttribute.length > 1 ? dataAttribute[2] : "0.0");
                 fe.put("tid", tid);
                 fe.put("state", 1);
+                fe.put("version", version);
                 fe.put("sorts", sorts);
                 fetch.add(fe);
-                //TODO: 写入数据列操作历史记录
-                coreLogger.reCordLogger("1", tables[0], "0", fid, "");
                 sorts++;
             }
             //TODO: 执行新增

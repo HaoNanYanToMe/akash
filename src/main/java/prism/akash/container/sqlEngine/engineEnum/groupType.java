@@ -3,6 +3,7 @@ package prism.akash.container.sqlEngine.engineEnum;
 public enum groupType {
 
     DEF("DEF"),//默认
+    DISTINCT(" DISTINCT"),//去重
     AVG(" AVG"),//返回某列的平均值
     COUNT(" COUNT"),//返回某列的行数
     MAX(" MAX"),//返回某列的最大值
