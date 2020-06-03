@@ -97,12 +97,16 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
             // TODO : 对指定的入参字段进行抽离另存
             if (execute.get("executeParam") != null){
                 // TODO : 重新进行数据绑定
-                this.bindFiled(execute.get("cr_engineparam") + "","cr_engineparam",init.getEngineId());
+                this.bindFiled(execute.get("executeParam") + "","cr_engineparam",init.getEngineId());
 
             }
             if(execute.get("outFiled") != null){
                 // TODO : 输出字段绑定
                 this.bindFiled(execute.get("outFiled") + "","cr_engineout",init.getEngineId());
+            }else{
+                execute.put("outFiled","*#全部");
+                // 如果为空:则代表查询全部
+                this.bindFiled( "*#全部","cr_engineout",init.getEngineId());
             }
         }
         return init;
