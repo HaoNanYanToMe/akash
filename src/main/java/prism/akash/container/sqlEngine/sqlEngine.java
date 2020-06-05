@@ -407,9 +407,14 @@ public class sqlEngine implements Serializable {
 
         appointTable = StringEscapeUtils.escapeSql(appointTable);
         boolean isExAppoint = exType.equals("DEF");
+        //TODO: 判断当前是否需要执行嵌套去重
+        boolean isDistinct = exType.indexOf("DIA") > -1;
+        if(isDistinct){
+            exType = exType.replace("DIA","");
+        }
         //TODO: 对传入数据进行处理优化
         if (appointColumns.length() < 1) {
-            appoint.append(appointTable).append(".*");
+            appoint.append(appointTable.split(",")[0]).append(".*");
             appoint = appoint.deleteCharAt(0);
         } else {
             for (String col : appointColumns.split(",")) {
@@ -420,9 +425,10 @@ public class sqlEngine implements Serializable {
                     appoint.append("'").append(col.replaceAll("@", "")).append("'");
                 } else {
                     if (col.contains("#")) {
-                        appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col.split("#")[0]).append(isExAppoint ? " as " : ") as ").append(col.split("#")[1]).append(",");
+                        //TODO : 2020/6/5 新增去重字段判定
+                        appoint.append(isExAppoint ? "" : exType + (isDistinct ?  "(DISTINCT(" : "(")).append(appointTable).append(".").append(col.split("#")[0]).append(isExAppoint ? " as " : isDistinct ? ") ) as " : ") as ").append(col.split("#")[1]).append(",");
                     } else {
-                        appoint.append(isExAppoint ? "" : exType + "(").append(appointTable).append(".").append(col).append(isExAppoint ? "," : "),");
+                        appoint.append(isExAppoint ? "" : exType + (isDistinct ?  "(DISTINCT(" : "(")).append(appointTable).append(".").append(col).append(isExAppoint ? "," : isDistinct ? "))," : "),");
                     }
                 }
             }
@@ -438,9 +444,9 @@ public class sqlEngine implements Serializable {
         }
         //输出字段
         if (engine.get("outFiled") == null) {
-            engine.put("outFiled", appoint);
+            engine.put("outFiled", appointColumns.length() < 1 ? (appointTable.split(",")[1] + ".*") : appoint);
         }else{
-            engine.put("outFiled", engine.get("outFiled").toString() + "," + appoint);
+            engine.put("outFiled", engine.get("outFiled").toString() + "," + (appointColumns.length() < 1 ? (appointTable.split(",")[1] + ".*") : appoint));
         }
         return this;
     }

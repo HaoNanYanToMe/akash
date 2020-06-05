@@ -8,10 +8,7 @@ import org.springframework.stereotype.Component;
 import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
 import prism.akash.container.extend.BaseDataExtends;
-import prism.akash.container.sqlEngine.engineEnum.conditionType;
-import prism.akash.container.sqlEngine.engineEnum.groupType;
-import prism.akash.container.sqlEngine.engineEnum.queryType;
-import prism.akash.container.sqlEngine.engineEnum.sortType;
+import prism.akash.container.sqlEngine.engineEnum.*;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.tools.StringKit;
 import prism.akash.tools.logger.CoreLogger;
@@ -97,16 +94,39 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
             // TODO : 对指定的入参字段进行抽离另存
             if (execute.get("executeParam") != null){
                 // TODO : 重新进行数据绑定
-                this.bindFiled(execute.get("executeParam") + "","cr_engineparam",init.getEngineId());
+                String ver = getVersion("cr_engineparam",init.getEngineId());
+                this.bindFiled(execute.get("executeParam") + "","cr_engineparam",init.getEngineId(),ver);
 
             }
             if(execute.get("outFiled") != null){
-                // TODO : 输出字段绑定
-                this.bindFiled(execute.get("outFiled") + "","cr_engineout",init.getEngineId());
-            }else{
-                execute.put("outFiled","*#全部");
-                // 如果为空:则代表查询全部
-                this.bindFiled( "*#全部","cr_engineout",init.getEngineId());
+                String ver = getVersion("cr_engineout",init.getEngineId());
+                //提出stringBuffer用来管理
+                //TODO: 20/6/3 提出 进行统一化管理
+                StringBuffer sb = new StringBuffer();
+                for (String ac : (execute.get("outFiled")+"").split(",")){
+                    //若存在*,即视为全部
+                    if(ac.indexOf("*") > -1){
+                        //根据表获取（不建议使用数据别名）对应字段
+                        List<BaseData> filed = baseApi.selectBase(new sqlEngine()
+                                .execute("cr_field", "f")
+                                .appointColumn("f", groupType.DEF, "name,code")
+                                .queryBuild(queryType.and, "f", "@tid", conditionType.EQ, groupType.DEF, ac.split("\\.")[0])
+                                .queryBuild(queryType.and, "f", "@state", conditionType.EQ, groupType.DEF, "1")
+                                .selectFin(""));
+                        execute.remove("outFiled");
+                        for (BaseData f : filed){
+                            sb.append(",");
+                            sb.append(f.get("code") + "#" + f.get("name"));
+                        }
+                        sb = sb.deleteCharAt(0);
+                        execute.put("outFiled",sb);
+                    }else{
+                        //不存在*
+                        // TODO : 输出字段绑定
+                        sb.append(",").append(ac);
+                    }
+                }
+                this.bindFiled(sb.toString(),"cr_engineout",init.getEngineId(),ver);
             }
         }
         return init;
@@ -117,15 +137,17 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
      * @param filed
      * @param table
      * @param eid
+     * @param ver  统一版本号
      */
-    private void bindFiled(String filed,String table,String eid){
-        String ver = getVersion(table,eid);
+    private void bindFiled(String filed,String table,String eid,String ver){
+        //执行新增前先更新历史数据
+        this.updateState(table,eid);
         for (String ac : filed.split(",")){
             if (!ac.equals("")){
                 String [] codeAndName = ac.indexOf(" as ") > -1 ? ac.split(" as ") : ac.split("#");
                 sqlEngine addParam = new sqlEngine().execute(table, "")
                         .addData("@id", StringKit.getUUID())
-                        .addData("@name", ac.contains("#") ? codeAndName[1].trim() : "")
+                        .addData("@name", codeAndName.length > 1 ? codeAndName[1].trim() :"")
                         .addData("@code", codeAndName[0].trim())
                         .addData("@engineId", eid)
                         .addData("@version", ver)
@@ -152,16 +174,16 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
                 .dataSort("e", "version", sortType.DESC)
                 .dataPaging("@0","@1")
                 .selectFin(""));
-        if (list.size() > 0){
-            //更新状态
-            baseApi.execute(new sqlEngine().execute(table, "c")
-                    .updateData("@state",  "0")
-                    .queryBuild(queryType.and, "c", "@engineId", conditionType.EQ, groupType.DEF, eid)
-                    .updateFin(""));
-            return  (Integer.parseInt(list.get(0).get("version") + "") + 1) + "";
-        }else {
-            return "0";
-        }
+        return list.size() > 0 ? (Integer.parseInt(list.get(0).get("version") + "") + 1) + "" : "0";
+    }
+
+    //更新数据
+    private int updateState(String table,String eid){
+        //更新状态
+        return baseApi.execute(new sqlEngine().execute(table, "c")
+                .updateData("@state",  "0")
+                .queryBuild(queryType.and, "c", "@engineId", conditionType.EQ, groupType.DEF, eid)
+                .updateFin(""));
     }
 
     /**

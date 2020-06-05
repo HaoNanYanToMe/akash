@@ -11,7 +11,7 @@ public interface FileUpload {
      * -- * TODO 仅支持简单数据表的解析及处理！
      *
      * @param fileUrl      excel文件地址
-     * @param bd           对应的附加信息（如用户或其他待处理字段）
+     * @param bd           对应的附加信息（指定主表信息）
      * @param isGenerateId 是否需要生成主键编号
      * @return
      * @throws Exception

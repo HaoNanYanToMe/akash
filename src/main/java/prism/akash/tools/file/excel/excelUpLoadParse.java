@@ -77,7 +77,6 @@ public class excelUpLoadParse implements FileUpload, Serializable {
             // TODO : 获取数据源字段
             List<BaseData> columns = baseApi.selectBase(new sqlEngine()
                     .execute("cr_field", "c")
-                    .appointColumn("c", groupType.DEF, "")
                     .joinBuild("cr_tables", "t", joinType.L)
                     .joinColunm("c", "tid", "id").joinFin()
                     .queryBuild(queryType.and, "t", "@code", conditionType.EQ, groupType.DEF, execute)

@@ -5,6 +5,7 @@ public enum groupType {
     DEF("DEF"),//默认
     DISTINCT(" DISTINCT"),//去重
     AVG(" AVG"),//返回某列的平均值
+    COUNTDIS(" COUNTDIA"),//TODO:行数，数据去重
     COUNT(" COUNT"),//返回某列的行数
     MAX(" MAX"),//返回某列的最大值
     MIN(" MIN"),//返回某列的最小值
