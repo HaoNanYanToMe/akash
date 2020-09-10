@@ -60,7 +60,31 @@ public class sqlEngine implements Serializable {
 
             String executeParam = engine.get("executeParam") + "";
             for (String key : params.keySet()) {
-                parseSql = parseSql.replaceAll("params_" + key, params.get(key) + "");
+                String queryValue = params.get(key) + "";
+                StringBuffer query = new StringBuffer();
+                //赋值处理
+                if(key.indexOf("@in") > -1){
+                    //针对IN类型Tag做处理
+                    query.append(" (");
+                    for (String iv : queryValue.split(",")) {
+                        if (!iv.trim().equals("") || iv != null)
+                            query.append("'").append(iv).append("',");
+                    }
+                    query.deleteCharAt(query.length() - 1).append(")");
+                    parseSql = parseSql.replaceAll("params_" + key,  query.toString());
+                }
+                else if(key.indexOf("@bt") > -1){
+                    //针对BETWEEN类型Tag做处理
+                    query.append("'").append(queryValue.split(",")[0]).append("'");
+                    query.append(" and ");
+                    query.append("'").append(queryValue.split(",")[1]).append("'");
+                }
+                else{
+                    //非特殊类型标识处理
+                    query.append(queryValue);
+                }
+                //TODO : 赋值替换
+                parseSql = parseSql.replaceAll("params_" + key, query.toString());
                 //TODO : 将已传参的参数消除
                 executeParam = executeParam.replaceAll(key, "");
             }
@@ -282,23 +306,12 @@ public class sqlEngine implements Serializable {
                 query.append(conditionType.replaceAll("ESCAPE", ""));
             }
             query.append(conditionType);
-            executeValue = conditionType.contains("LIKE") || conditionType.contains("IN") || conditionType.contains("NULL") || conditionType.contains("BET");
+            executeValue = conditionType.contains("LIKE") || conditionType.contains("NULL") ;
         }
 
         String queryValue = engine.get("queryValue") == null ? "" : engine.getString("queryValue");
         if (executeValue) {
-            if (conditionType.equals(" IN ") || conditionType.equals(" NOT IN ")) {
-                query.append(" (");
-                for (String iv : queryValue.split(",")) {
-                    if (!iv.trim().equals("") || iv != null)
-                        query.append("'").append(iv).append("',");
-                }
-                query.deleteCharAt(query.length() - 1).append(")");
-            } else if (conditionType.contains("BET")) {
-                query.append("'").append(queryValue.split(",")[0]).append("'");
-                query.append(" and ");
-                query.append("'").append(queryValue.split(",")[1]).append("'");
-            } else if (conditionType.equals(" LIKE ")) {
+            if (conditionType.equals(" LIKE ")) {
                 query.append(" '").append(isEscape ? queryValue.split("\\|")[1] : queryValue)
                         .append("' ").append(isEscape ? ("escape '" + queryValue.split("\\|")[0] + "'") : "");
             } else if (conditionType.equals(" NOT LIKE ")) {
@@ -426,7 +439,7 @@ public class sqlEngine implements Serializable {
                 } else {
                     if (col.contains("#")) {
                         //TODO : 2020/6/5 新增去重字段判定
-                        appoint.append(isExAppoint ? "" : exType + (isDistinct ?  "(DISTINCT(" : "(")).append(appointTable).append(".").append(col.split("#")[0]).append(isExAppoint ? " as " : isDistinct ? ") ) as " : ") as ").append(col.split("#")[1]).append(",");
+                        appoint.append(isExAppoint ? "" : exType + (isDistinct ?  "(DISTINCT(" : "(")).append(appointTable).append(".").append(col.split("#")[0]).append(isExAppoint ? " as `" : isDistinct ? ") ) as `" : ") as `").append(col.split("#")[1]).append("` ,");
                     } else {
                         appoint.append(isExAppoint ? "" : exType + (isDistinct ?  "(DISTINCT(" : "(")).append(appointTable).append(".").append(col).append(isExAppoint ? "," : isDistinct ? "))," : "),");
                     }
@@ -490,7 +503,7 @@ public class sqlEngine implements Serializable {
                 }
                 //TODO: 增加别名
                 if (!alias.equals("")) {
-                    groupColumn.append(" as ").append(alias);
+                    groupColumn.append(" as `").append(alias).append("`");
                 }
                 groupColumn.append(" ,");
             }
@@ -755,21 +768,25 @@ public class sqlEngine implements Serializable {
         String sortTypeStr = sortType.getSortType();
 
         key = table + "." + key;
-        switch (sortTypeStr) {
-            case "ASC":
-                sort.append(" " + key + " asc,");
-                break;
-            case "UASC":
-                sort.append("  convert( " + key + " using gbk)  asc,");
-                break;
-            case "UDESC":
-                sort.append("  convert( " + key + " using gbk)  desc,");
-                break;
-            default:
-                sort.append(" " + key + " desc,");
-                break;
+        if(!key.equals(".")){
+            switch (sortTypeStr) {
+                case "ASC":
+                    sort.append(" " + key + " asc,");
+                    break;
+                case "UASC":
+                    sort.append("  convert( " + key + " using gbk)  asc,");
+                    break;
+                case "UDESC":
+                    sort.append("  convert( " + key + " using gbk)  desc,");
+                    break;
+                default:
+                    sort.append(" " + key + " desc,");
+                    break;
+            }
+        }else{
+            //不需要分组
+            sort.append(" NULL,");
         }
-
         engine.put("dataSort", engine.get("dataSort") == null ? sort : (engine.getString("dataSort") + sort));
         return this;
     }

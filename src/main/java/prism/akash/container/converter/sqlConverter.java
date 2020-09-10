@@ -198,7 +198,7 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
                 .appointColumn("c", groupType.DEF, "id")
                 .queryBuild(queryType.and, "c", "@code", conditionType.EQ, groupType.DEF, code)
                 .queryBuild(queryType.and, "c", "@engineType", conditionType.EQ, groupType.DEF, "0")
-                .queryBuild(queryType.and, "c", "@state", conditionType.EQ, groupType.DEF, "0").selectFin(""));
+                .queryBuild(queryType.and, "c", "@state", conditionType.EQ, groupType.DEF, "1").selectFin(""));
         return exist.size() > 0 ? exist.get(0) : null;
     }
 
@@ -225,7 +225,7 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
                     .addData("@code", code)
                     .addData("@note", note)
                     .addData("@engineType", "0")
-                    .addData("@state", "0")
+                    .addData("@state", "1")
                     .addData("@executeVail", "0")
                     .addData("@version", initData.getVersion() + "")
                     .insertFin("");

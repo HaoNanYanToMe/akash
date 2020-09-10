@@ -13,7 +13,7 @@ public class dateParse {
      * 格式化时间parse
      * @param format   格式化
      * @param date     时间
-     * @return
+     * @return Date
      * @throws ParseException
      */
     public Date parseDate(String format,String date) throws ParseException {
@@ -24,7 +24,7 @@ public class dateParse {
      * 格式化时间format
      * @param format   格式化
      * @param date     时间
-     * @return
+     * @return String
      */
     public String formatDate(String format,Date date){
         return new SimpleDateFormat(format).format(date);
