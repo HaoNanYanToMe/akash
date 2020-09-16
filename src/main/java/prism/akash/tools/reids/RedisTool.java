@@ -52,6 +52,7 @@ public class RedisTool {
         return expire;
     }
 
+
     /**
      * 获取锁
      *
@@ -82,6 +83,14 @@ public class RedisTool {
         }
     }
 
+    /**
+     * 删除数据
+     *
+     * @param key
+     */
+    public void delete(String key) {
+        JedisUtil.deleteKey(key);
+    }
 
     /**
      * 写入数据

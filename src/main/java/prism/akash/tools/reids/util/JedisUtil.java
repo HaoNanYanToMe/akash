@@ -40,7 +40,12 @@ public class JedisUtil {
      * @param timeout 数据过期时间 （ms毫秒）
      */
     public void setString(String key, String value, int timeout) {
-        redisTemplate.opsForValue().set(key, value, timeout, TimeUnit.MILLISECONDS);
+        if (timeout == -1) {
+            redisTemplate.opsForValue().set(key, value);
+            setPersist(key);
+        } else {
+            redisTemplate.opsForValue().set(key, value, timeout, TimeUnit.MILLISECONDS);
+        }
     }
 
     /**

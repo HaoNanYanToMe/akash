@@ -1078,4 +1078,16 @@ public class sqlEngine implements Serializable {
         engine.remove("dataPaging");
         return this;
     }
+
+    //TODO :  拓展相关  引擎授权（查询）  仅限在schema逻辑层使用↓↓↓↓↓↓↓↓↓
+    public sqlEngine setSelect(String sql){
+        engine.put("select" , sql);
+        return this;
+    }
+
+    //TODO :  拓展相关  引擎授权（增删改）  仅限在schema逻辑层使用↓↓↓↓↓↓↓↓↓
+    public sqlEngine setExecute(String sql){
+        engine.put("execute" , sql);
+        return this;
+    }
 }

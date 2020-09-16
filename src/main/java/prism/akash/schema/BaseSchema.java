@@ -1,11 +1,307 @@
 package prism.akash.schema;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import prism.akash.api.BaseApi;
+import prism.akash.container.BaseData;
+import prism.akash.container.sqlEngine.sqlEngine;
+import prism.akash.tools.reids.RedisTool;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 /**
  * 系统基础逻辑处理类
  *       TODO : 系统·核心逻辑 （独立）
  * @author HaoNan Yan
  */
-public class BaseSchema {
+@Service("baseSchema")
+@Transactional(readOnly = true)
+public class BaseSchema implements Serializable {
 
+    @Autowired
+    protected RedisTool redisTool;
+
+    @Autowired
+    protected BaseApi baseApi;
+
+    /**
+     * 一般数据查询
+     * TODO ※注意 本方法不会返回格式化后的分页数据！若需要分页数据请调用@selectPage
+     *
+     * @param executeData 核心参数
+     *                    示例
+     *                    ↓↓↓↓↓↓
+     *                    {
+     *                    id:   待执行调用的SQL引擎编号
+     *                    executeData：  所需参数 ： 请根据当前引擎实际情况进行传参
+     *                    }
+     * @return
+     */
+    public List<BaseData> select(BaseData executeData) {
+        String id = executeData.getString("id");
+        String data = executeData.getString("executeData");
+        //1.当id为空，直接返回null
+        //2.若executeData为空，则将属性值设置为"{}"
+        return id.isEmpty() ? null : baseApi.select(id, data.isEmpty() ? "{}" : data);
+    }
+
+    /**
+     * 分页数据查询
+     *
+     * @param executeData 核心参数
+     *                    示例
+     *                    ↓↓↓↓↓↓
+     *                    {
+     *                    id:   待执行调用的SQL引擎编号
+     *                    executeData：  所需参数 ： 请根据当前引擎实际情况进行传参 , 为保证分页数据准确，请务必按照引擎需求字段进行传参
+     *                    }
+     * @return
+     */
+    public Map<String, Object> selectPage(BaseData executeData) {
+        String id = executeData.getString("id");
+        String data = executeData.getString("executeData");
+        //1.当id为空，直接返回null
+        //2.若executeData为空，则将属性值设置为"{}"
+        return id.isEmpty() ? null : baseApi.selectPage(id, data.isEmpty() ? "{}" : data);
+    }
+
+    /**
+     * 根据ID查询单条数据
+     * TODO  ※请注意，本方法只能查询state为1，即正常的数据
+     *
+     * @param executeData 核心参数
+     *                    示例
+     *                    ↓↓↓↓↓↓
+     *                    {
+     *                    id:   数据表ID
+     *                    executeData：  所需参数
+     *                    {
+     *                    *id :    需要查询的数据ID ※ 必传参数
+     *                    filed : 指定需要返回的字段
+     *                    }
+     *                    }
+     * @return
+     */
+    public BaseData selectByOne(BaseData executeData) {
+        String id = executeData.getString("id");
+        String data = executeData.getString("executeData");
+        //执行条件：
+        //1.executeData不为空
+        //2.executeData中存在id参数
+        //3.executeData中id参数不为空
+        if (id.isEmpty() && data.isEmpty()) {
+            return null;
+        } else {
+            //TODO 判断核心参数是否存在
+            Object paramId = JSONObject.parseObject(data).get("id");
+            boolean existId = paramId == null && (paramId + "").equals("null");
+            return id.isEmpty() || existId ? null : baseApi.selectByOne(id, data);
+        }
+    }
+
+
+    /**
+     * 执行数据增删改操作
+     * TODO ※暂未开放 风险性较高 涉及复杂型数据增删改时，建议使用schema进行操作
+     *
+     * @param executeData 核心参数
+     *                    示例
+     *                    ↓↓↓↓↓↓
+     *                    {
+     *                    id:   待执行调用的SQL引擎编号
+     *                    executeData：  所需参数 ： 请根据当前引擎实际情况进行传参
+     *                    }
+     * @return
+     */
+//    @Transactional(readOnly = false)
+    private int execute(BaseData executeData) {
+        String id = executeData.getString("id");
+        String data = executeData.getString("executeData");
+        //1.当id为空，直接返回null
+        //2.若executeData为空，则将属性值设置为"{}"
+        return id.isEmpty() ? null : baseApi.execute(id, data.isEmpty() ? "{}" : data);
+    }
+
+
+    /**
+     * 新增数据
+     *
+     * @param executeData 核心参数
+     *                    示例
+     *                    ↓↓↓↓↓↓
+     *                    {
+     *                    id:   数据表ID
+     *                    executeData：  所需参数 ： 请根据当前引擎实际情况进行传参
+     *                    }
+     * @return uuid : 成功
+     * -1   : 参数字段不匹配
+     * -2   : 数据表不存在
+     * ""   : 失败
+     */
+    @Transactional(readOnly = false)
+    public String insertData(BaseData executeData) {
+        String id = executeData.getString("id");
+        String data = executeData.getString("executeData");
+        //1.当id为空，直接返回null
+        //2.若executeData为空，则将属性值设置为"{}"
+        return id.isEmpty() ? null : baseApi.insertData(id, data.isEmpty() ? "{}" : data);
+    }
+
+
+    /**
+     * 更新数据
+     *
+     * @param executeData 核心参数
+     *                    示例
+     *                    ↓↓↓↓↓↓
+     *                    {
+     *                    id:   数据表ID
+     *                    executeData：  所需参数 ： 请根据当前引擎实际情况进行传参
+     *                    {
+     *                    *id :     待更新数据ID
+     *                    *version: 待更新数据version
+     *                    }
+     *                    }
+     * @return 1   : 成功
+     * -1   : 参数字段不匹配
+     * -2   : 数据表不存在
+     * -3   : 数据版本不匹配
+     * -8   ：数据不存在
+     * -9   ：入参数据有误（缺少版本号 updVersion）
+     * 0   ：失败（数据锁定:is_lock状态）
+     */
+    @Transactional(readOnly = false)
+    public int updateData(BaseData executeData) {
+        String id = executeData.getString("id");
+        String data = executeData.getString("executeData");
+        //执行条件：
+        //1.executeData不为空
+        //2.executeData中存在id参数
+        //3.executeData中id参数不为空
+        //3.executeData中version参数不为空
+        if (id.isEmpty() && data.isEmpty()) {
+            return 0;
+        } else {
+            return id.isEmpty() ? 0 : baseApi.updateData(id, data);
+        }
+    }
+
+    /**
+     * 数据软删除
+     *
+     * @param executeData 核心参数
+     *                    示例
+     *                    ↓↓↓↓↓↓
+     *                    {
+     *                    id:   数据表ID
+     *                    executeData：  所需参数 ： 请根据当前引擎实际情况进行传参
+     *                    {
+     *                    *id :    待软删除数据的ID
+     *                    }
+     *                    }
+     * @return 1   : 成功
+     * -1   : 参数字段不匹配
+     * -2   : 数据表不存在
+     * -3   : 数据版本不匹配
+     * -8   ：数据不存在
+     * -9   ：入参数据有误（缺少版本号 updVersion）
+     * 0   ：失败（数据锁定:is_lock状态）
+     */
+    @Transactional(readOnly = false)
+    public int deleteDataSoft(BaseData executeData) {
+        String id = executeData.getString("id");
+        String data = executeData.getString("executeData");
+        if (id.isEmpty() && data.isEmpty()) {
+            return 0;
+        } else {
+            Object paramId = JSONObject.parseObject(data).get("id");
+            boolean existId = paramId == null && (paramId + "").equals("null");
+            //判断需要执行软删除的数据ID是否存在
+            if (!existId) {
+                //根据ID查询当前数据的数据版本
+                BaseData one = new BaseData();
+                one.put("id", id);
+                BaseData execute = new BaseData();
+                execute.put("id", paramId);
+                execute.put("filed", "version");
+                one.put("executeData", execute);
+                BaseData selectParam = selectByOne(one);
+                if (selectParam != null) {
+                    //初始化数据软删除对象
+                    BaseData soft = new BaseData();
+                    soft.put("id", id);
+                    BaseData executeUpd = new BaseData();
+                    executeUpd.put("id", paramId);
+                    executeUpd.put("state", 1);
+                    executeUpd.put("version", Integer.parseInt(selectParam.get("version") + "") + 1);
+                    soft.put("executeData", executeUpd);
+                    //执行更新（软删除）
+                    return id.isEmpty() ? 0 : baseApi.updateData(id, JSON.toJSONString(soft));
+                } else {
+                    return 0;
+                }
+            } else {
+                return 0;
+            }
+        }
+    }
+
+
+    /**
+     * 删除数据 - 暴力删除
+     *
+     * @param executeData 核心参数
+     *                    示例
+     *                    ↓↓↓↓↓↓
+     *                    {
+     *                    id:   数据表ID
+     *                    executeData：  所需参数 ： 请根据当前引擎实际情况进行传参
+     *                    {
+     *                    *id :    待删除数据ID
+     *                    }
+     *                    }
+     * @return 0 - 失败（数据锁定:is_lock状态）
+     * 1 - 成功
+     * -1 - 参数不匹配（没有id)
+     * -2 - 不存在表
+     */
+    @Transactional(readOnly = false)
+    public int deleteData(BaseData executeData) {
+        String id = executeData.getString("id");
+        String data = executeData.getString("executeData");
+        //1.当id为空，直接返回null
+        //2.若executeData为空，则将属性值设置为"{}"
+        return id.isEmpty() ? null : baseApi.deleteData(id, data.isEmpty() ? "{}" : data);
+    }
+
+
+    /**
+     * 根据table的code值获取tableId
+     * TODO 仅提供于Schema层使用
+     *
+     * @param tableCode 数据表唯一码
+     * @return
+     */
+    protected String getTableIdByCode(String tableCode) {
+        //通过redis获取缓存数据
+        List<BaseData> tableList = redisTool.getList("core:table:list", null, null);
+        if (tableList.size() == 0) {
+            tableList = baseApi.selectBase(new sqlEngine().setSelect(" select id,code,name from cr_tables where state = 1 "));
+            redisTool.set("core:table:list", tableList, -1);
+        }
+        //通过lambda表达式获取指定数据
+        if (tableList != null && tableList.size() > 0) {
+            List<BaseData> result = tableList.stream().filter(t -> t.get("code").equals(tableCode)).collect(Collectors.toList());
+            return result.size() > 0 ? result.get(0).getString("id") : null;
+        } else {
+            return null;
+        }
+    }
 
 }

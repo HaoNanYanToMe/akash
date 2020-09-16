@@ -15,6 +15,7 @@ import prism.akash.container.sqlEngine.engineEnum.queryType;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.dataInteraction.BaseInteraction;
 import prism.akash.tools.StringKit;
+import prism.akash.tools.date.dateParse;
 import prism.akash.tools.logger.CoreLogger;
 
 import java.util.*;
@@ -25,6 +26,8 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
 
     @Autowired
     BaseInteraction baseInteraction;
+    @Autowired
+    dateParse dateParse;
     @Autowired
     CoreLogger coreLogger;
 
@@ -102,7 +105,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
             }else{
                 sb.append(" * ");
             }
-            select.put("select","select " + sb.deleteCharAt(sb.length()-1) + " from " + tableCode + " where state = 1 and id = '" + params.get("id") + "'");
+            select.put("select","select " + sb.deleteCharAt(sb.length()-1) + " from " + tableCode + " where state = 0 and id = '" + params.get("id") + "'");
             List<BaseData> dataList = baseInteraction.select(select);
             return dataList.size() > 0 ? dataList.get(0) : null;
         }else{
@@ -151,7 +154,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
      */
     private int getDataVersion(String id,String code){
         BaseData select = new BaseData();
-        select.put("select","select version from " + code + " where state = 1 and id = '" + id + "'");
+        select.put("select","select version from " + code + " where state = 0 and id = '" + id + "'");
         List<BaseData> fields = baseInteraction.select(select);
         return fields.size() > 0 ? Integer.parseInt(fields.get(0).get("version")+"") : -1;
     }
@@ -178,7 +181,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                 //TODO 核心表没有create_time字段
                 if (!tableCode.split("_")[0].equals("cr")){
                     //数据创建时间
-                    params.put("create_time",new Date());
+                    params.put("create_time", dateParse.formatDate("yyyy-MM-dd HH:mm:ss", new Date()));
                 }
                 //数据版本
                 params.put("version", 0);
@@ -189,7 +192,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                     for (BaseData field:fields) {
                         if(field.getString("code").equals(key)){
                             keys.append(key).append(",");
-                            values.append(params.get(key)).append(",");
+                            values.append("'").append(params.get(key)).append("',");
                             //为了提升系统性能，一旦获取匹配值则跳出当前循环
                             break;
                         }
@@ -240,18 +243,25 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                                 //为了提升系统性能，一旦获取匹配值则跳出当前循环
                                 break;
                             }
-                            if(field.getString("id").equals(key) ||
-                                    field.getString("version").equals(key)){
-                                //禁止通过传参方式更新数据的主键uuid及数据版本号
-                                break;
+                            if(field.get("id") != null){
+                                if(field.getString("id").equals(key)){
+                                    //禁止通过传参方式更新数据的主键uuid及数据版本号
+                                    break;
+                                }
+                            }
+                            if(field.get("version") != null){
+                                if(field.getString("version").equals(key)){
+                                    //禁止通过传参方式更新数据的主键uuid及数据版本号
+                                    break;
+                                }
                             }
                         }
                         update.append(" version = ").append(updVersion);
                         if (!tableCode.split("_")[0].equals("cr")){
                             //数据最后访问时间
-                            update.append(" last_time = ").append(new Date());
+                            update.append(" ,last_time = '").append(dateParse.formatDate("yyyy-MM-dd HH:mm:ss", new Date())).append("'");
                         }
-                        update.append(" where id = ").append(params.get("id"));
+                        update.append(" where id = '").append(params.get("id")).append("'");
                         //TODO sys系统源数据在更新时需要追加is_lock条件
                         if (tableCode.split("_")[0].equals("sys")){
                             update.append(" and is_lock = 0 ");
@@ -270,7 +280,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
         }else{
             state = -2;
         }
-        return 0;
+        return state;
     }
 
     @Override

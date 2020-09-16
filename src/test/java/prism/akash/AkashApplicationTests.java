@@ -1,4 +1,5 @@
 package prism.akash;
+import com.alibaba.fastjson.JSON;
 import net.sourceforge.groboutils.junit.v1.MultiThreadedTestRunner;
 import net.sourceforge.groboutils.junit.v1.TestRunnable;
 import org.junit.Test;
@@ -7,7 +8,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import prism.akash.container.BaseData;
+import prism.akash.controller.BaseController;
+import prism.akash.controller.proxy.BaseProxy;
+import prism.akash.tools.context.SpringContextUtil;
 import prism.akash.tools.reids.RedisTool;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * 多并发线程测试
@@ -20,11 +28,58 @@ public class AkashApplicationTests {
     @Autowired
     RedisTool redisTool;
 
+    @Autowired
+    BaseController baseController;
+//
+    @Test
+    public void testPrism(){
+        //查询单条数据
+        BaseData  bd = new BaseData();
+        bd.put("id","57c4b85014b4447dbf21b0c6abcfe9f2");
+        BaseData  execute = new BaseData();
+        execute.put("id","80378c5a7b404fe59fb04943bbf9cd78");
+        bd.put("executeData",JSON.toJSONString(execute));
+        System.out.println(baseController.executeUnify("","selectByOne",JSON.toJSONString(bd)));
+    }
+
+    //更新菜单
+    public String upd(){
+        BaseData  bd = new BaseData();
+        bd.put("id","57c4b85014b4447dbf21b0c6abcfe9f2");
+        BaseData  execute = new BaseData();
+        execute.put("name","测试22P");
+        execute.put("code","ZZytest");
+        execute.put("is_parent",1);
+        execute.put("is_lock",0);
+        execute.put("pid",-1);
+        execute.put("note",-1);
+        execute.put("order_number",0);
+        execute.put("version",1);
+        execute.put("id","80378c5a7b404fe59fb04943bbf9cd78");
+        bd.put("executeData",JSON.toJSONString(execute));
+        return  baseController.executeUnify("","updateData",JSON.toJSONString(bd));
+    }
+
+    //新增菜单
+    public String add(){
+        BaseData  bd = new BaseData();
+        bd.put("id","57c4b85014b4447dbf21b0c6abcfe9f2");
+        BaseData  execute = new BaseData();
+        execute.put("name","测试");
+        execute.put("code","test");
+        execute.put("is_parent",1);
+        execute.put("is_lock",0);
+        execute.put("pid",-1);
+        execute.put("order_number",0);
+        bd.put("executeData",JSON.toJSONString(execute));
+        return baseController.executeUnify("base","insertData", JSON.toJSONString(bd));
+    }
+
     /**
      * TODO 本示例模拟演示了100个用户竞争10件商品的秒杀逻辑
      * @throws Throwable
      */
-    @Test
+//    @Test
     public void testThreadJunit() throws Throwable {
         //设置基础库存数量
         redisTool.set("kucun","10",600000);
