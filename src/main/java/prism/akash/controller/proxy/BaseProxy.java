@@ -1,5 +1,6 @@
 package prism.akash.controller.proxy;
 
+import com.alibaba.fastjson.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,10 +32,11 @@ public class BaseProxy implements Serializable {
      * 执行方法
      * @param schemaName    需要反射代理的Schema（系统固有逻辑）对象
      * @param methodName    需要代理执行调用的方法名称
+     * @param id            数据表id /  sql数据引擎id
      * @param executeData   代理入参数据对象
      * @return
      */
-    public Object invokeMethod(String schemaName, String methodName, BaseData executeData) {
+    public Object invokeMethod(String schemaName, String methodName, String id, BaseData executeData) {
         //通过反射代理的class对象
         Class clazz;
         //执行invoke后返回的数据对象
@@ -47,7 +49,12 @@ public class BaseProxy implements Serializable {
         try {
             //执行方法
             m1 = clazz.getDeclaredMethod(methodName, BaseData.class);
-            reObject = m1.invoke(obj, executeData);
+            //封装执行参数
+            BaseData execute = new BaseData();
+            execute.put("id", id);
+            execute.put("executeData", JSON.toJSONString(executeData));
+            //执行操作
+            reObject = m1.invoke(obj, execute);
         } catch (NoSuchMethodException e) {
             logger.error("BaseProxy:invokeMethod:NoSuchMethodException -> " + schemaName + " - " + methodName + " is not Found");
         } catch (IllegalAccessException e) {
@@ -69,13 +76,13 @@ public class BaseProxy implements Serializable {
         //如果SchemaName为空,则默认使用baseSchema
         schemaName = schemaName.isEmpty() || schemaName == null ? "base" : schemaName;
         String schema = schemaName + "Schema";
-        //从redis中获取Schema对象
+        //从cache中获取Schema对象
         Object schemaObj = CacheClass.getCache("schema:proxy:" + schemaName);
         if (schemaObj != null) {
-            //将redis中获取的数据转换成实际存在的schema对象
+            //将cache中获取的数据转换成实际存在的schema对象
             sObj = schemaObj;
         } else {
-            //若redis中未获取到schema对象则进行初始化
+            //若cache中未获取到schema对象则进行初始化
             Class<?> cls = null;
             try {
                 cls = Class.forName("prism.akash.schema.BaseSchema");

@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
 /**
  * 系统基础逻辑处理类
  *       TODO : 系统·核心逻辑 （独立）
+ *       TODO : ※ 为防止注入风险，Schema层代码凡是直接使用了Controller层executeData参数的，均需要对指定参数进行转义处理 ！
+ *                                            ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
+ *                               TODO  「 StringEscapeUtils.escapeSql() 」
  * @author HaoNan Yan
  */
 @Service("baseSchema")
@@ -73,7 +76,6 @@ public class BaseSchema implements Serializable {
 
     /**
      * 根据ID查询单条数据
-     * TODO  ※请注意，本方法只能查询state为1，即正常的数据
      *
      * @param executeData 核心参数
      *                    示例
@@ -150,7 +152,7 @@ public class BaseSchema implements Serializable {
         String data = executeData.getString("executeData");
         //1.当id为空，直接返回null
         //2.若executeData为空，则将属性值设置为"{}"
-        return id.isEmpty() ? null : baseApi.insertData(id, data.isEmpty() ? "{}" : data);
+        return id.isEmpty() ? "0" : baseApi.insertData(id, data.isEmpty() ? "{}" : data);
     }
 
 
@@ -211,7 +213,7 @@ public class BaseSchema implements Serializable {
      * -3   : 数据版本不匹配
      * -8   ：数据不存在
      * -9   ：入参数据有误（缺少版本号 updVersion）
-     * 0   ：失败（数据锁定:is_lock状态）
+     *  0   ：失败（数据锁定:is_lock状态）
      */
     @Transactional(readOnly = false)
     public int deleteDataSoft(BaseData executeData) {
@@ -230,31 +232,27 @@ public class BaseSchema implements Serializable {
                 BaseData execute = new BaseData();
                 execute.put("id", paramId);
                 execute.put("filed", "version");
-                one.put("executeData", execute);
+                one.put("executeData", JSON.toJSONString(execute));
                 BaseData selectParam = selectByOne(one);
                 if (selectParam != null) {
-                    //初始化数据软删除对象
-                    BaseData soft = new BaseData();
-                    soft.put("id", id);
                     BaseData executeUpd = new BaseData();
                     executeUpd.put("id", paramId);
                     executeUpd.put("state", 1);
                     executeUpd.put("version", Integer.parseInt(selectParam.get("version") + "") + 1);
-                    soft.put("executeData", executeUpd);
                     //执行更新（软删除）
-                    return id.isEmpty() ? 0 : baseApi.updateData(id, JSON.toJSONString(soft));
+                    return id.isEmpty() ? 0 : baseApi.updateData(id, JSON.toJSONString(executeUpd));
                 } else {
-                    return 0;
+                    return -8;
                 }
             } else {
-                return 0;
+                return -1;
             }
         }
     }
 
-
     /**
      * 删除数据 - 暴力删除
+     * TODO 本接口仅允许删除经过deleteDataSoft软删除处理的数据 （数据的state状态为1 - 禁用状态）
      *
      * @param executeData 核心参数
      *                    示例
@@ -277,7 +275,7 @@ public class BaseSchema implements Serializable {
         String data = executeData.getString("executeData");
         //1.当id为空，直接返回null
         //2.若executeData为空，则将属性值设置为"{}"
-        return id.isEmpty() ? null : baseApi.deleteData(id, data.isEmpty() ? "{}" : data);
+        return id.isEmpty() ? 0 : baseApi.deleteData(id, data.isEmpty() ? "{}" : data);
     }
 
 

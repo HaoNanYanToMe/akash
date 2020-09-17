@@ -50,7 +50,7 @@ public interface BaseApi {
      *              uuid : 成功
      *              -1   : 参数字段不匹配
      *              -2   : 数据表不存在
-     *              ""   : 失败
+     *              -5   : 失败
      */
     String insertData(String id,String executeData);
 

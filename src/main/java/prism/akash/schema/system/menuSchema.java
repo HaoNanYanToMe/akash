@@ -17,12 +17,11 @@ import java.util.List;
  *       TODO : 系统·核心逻辑 （独立）
  * @author HaoNan Yan
  */
-@Service("menuSchema")
-@Transactional(readOnly = true)
+@Service
 public class menuSchema extends BaseSchema {
 
     /**
-     * ①获取系统默认菜单树
+     * 获取系统默认菜单树
      *
      * @param systemName 系统名称
      * @return

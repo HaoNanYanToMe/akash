@@ -3,6 +3,7 @@ package prism.akash.api.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import prism.akash.dataInteraction.BaseInteraction;
 import prism.akash.tools.StringKit;
 import prism.akash.tools.date.dateParse;
 import prism.akash.tools.logger.CoreLogger;
+import prism.akash.tools.reids.RedisTool;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +30,8 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
     BaseInteraction baseInteraction;
     @Autowired
     dateParse dateParse;
+    @Autowired
+    RedisTool redisTool;
     @Autowired
     CoreLogger coreLogger;
 
@@ -89,7 +93,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                         if(f.indexOf("#") > -1){
                             //TODO 存在别名
                             if(field.getString("code").equals(fk[0])){
-                                sb.append(fk[0]).append(" as ").append(fk[1]).append(",");
+                                sb.append(StringEscapeUtils.escapeSql(fk[0])).append(" as ").append(StringEscapeUtils.escapeSql(fk[1])).append(",");
                                 //为了提升系统性能，一旦获取匹配值则跳出当前循环
                                 break;
                             }
@@ -105,7 +109,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
             }else{
                 sb.append(" * ");
             }
-            select.put("select","select " + sb.deleteCharAt(sb.length()-1) + " from " + tableCode + " where state = 0 and id = '" + params.get("id") + "'");
+            select.put("select", "select " + sb.deleteCharAt(sb.length() - 1) + " from " + tableCode + " where  id = " + StringEscapeUtils.escapeSql(params.get("id") + ""));
             List<BaseData> dataList = baseInteraction.select(select);
             return dataList.size() > 0 ? dataList.get(0) : null;
         }else{
@@ -126,22 +130,34 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
      * @return
      */
     private String getTableCode(String id){
-        BaseData select = new BaseData();
-        select.put("select","select code from cr_tables where state = 1 and id = '" + id + "'");
-        List<BaseData> tables = baseInteraction.select(select);
-        return tables.size() > 0 ? tables.get(0).get("code") + "" : "";
+        String code = redisTool.get("table:code:id" + id);
+        if (code.isEmpty() || code == null) {
+            BaseData select = new BaseData();
+            select.put("select", "select code from cr_tables where state = 0 and id = " + StringEscapeUtils.escapeSql(id));
+            List<BaseData> tables = baseInteraction.select(select);
+            code = tables.size() > 0 ? tables.get(0).get("code") + "" : "";
+            //持久化当前表code
+            redisTool.set("table:code:id" + id, code, -1);
+        }
+        return code;
     }
 
     /**
      * 内部方法：根据指定数据表ID获取字段
-     * @param id
+     * @param id    数据表ID
      * @return
      */
     private List<BaseData> getFieldList(String id){
-        BaseData select = new BaseData();
-        select.put("select","select code from cr_field where state = 1 and tid = '" + id + "'");
-        List<BaseData> fields = baseInteraction.select(select);
-        return fields.size() > 0 ? fields :new ArrayList<>();
+        //从redis缓存内读取相应数据
+        List<BaseData> fieldList = redisTool.getList("field:list:id:" + id, null, null);
+        if (fieldList.size() == 0) {
+            BaseData select = new BaseData();
+            select.put("select", "select code from cr_field where state = 0 and tid = " + StringEscapeUtils.escapeSql(id));
+            fieldList = baseInteraction.select(select);
+            //持久化当前表字段
+            redisTool.set("field:list:id:" + id, fieldList, -1);
+        }
+        return fieldList.size() > 0 ? fieldList : new ArrayList<>();
     }
 
     /**
@@ -154,7 +170,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
      */
     private int getDataVersion(String id,String code){
         BaseData select = new BaseData();
-        select.put("select","select version from " + code + " where state = 0 and id = '" + id + "'");
+        select.put("select", "select version from " + code + " where state = 0 and id = " + StringEscapeUtils.escapeSql(id));
         List<BaseData> fields = baseInteraction.select(select);
         return fields.size() > 0 ? Integer.parseInt(fields.get(0).get("version")+"") : -1;
     }
@@ -162,6 +178,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
     @Override
     @Transactional
     public String  insertData(String id, String executeData) {
+        String state = "0";
         LinkedHashMap<String, Object> params = StringKit.parseLinkedMap(executeData);
         String tableCode = getTableCode(id);
         if(!tableCode.isEmpty()){
@@ -192,7 +209,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                     for (BaseData field:fields) {
                         if(field.getString("code").equals(key)){
                             keys.append(key).append(",");
-                            values.append("'").append(params.get(key)).append("',");
+                            values.append("'").append(StringEscapeUtils.escapeSql(params.get(key) + "")).append("',");
                             //为了提升系统性能，一旦获取匹配值则跳出当前循环
                             break;
                         }
@@ -204,13 +221,14 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                 //执行新增
                 BaseData bd = new BaseData();
                 bd.put("executeSql",insert.toString());
-                return baseInteraction.execute(bd) > 0 ? uuid : "0";
+                state =  baseInteraction.execute(bd) > 0 ? uuid : "0";
             }else{
-                return "-1";
+                state =  "-1";
             }
         }else{
-            return "-2";
+            state = "-2";
         }
+        return state.equals("") ? "0" : state;
     }
 
     @Override
@@ -238,39 +256,32 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                     for (String key : params.keySet()) {
                         //数据强校验，以保证传入的数据字段真实有效
                         for (BaseData field:fields) {
-                            if(field.getString("code").equals(key)){
-                                update.append(key).append(" = ").append(params.get(key)).append(" , ");
+                            String code = field.getString("code");
+                            if (code.equals(key)) {
+                                if (code.equals("id") || code.equals("version")) {
+                                    //TODO 不允许手动更新数据主键ID/数据版本version
+                                } else {
+                                    update.append(StringEscapeUtils.escapeSql(key)).append(" = '").append(StringEscapeUtils.escapeSql(params.get(key) + "")).append("' , ");
+                                }
                                 //为了提升系统性能，一旦获取匹配值则跳出当前循环
                                 break;
                             }
-                            if(field.get("id") != null){
-                                if(field.getString("id").equals(key)){
-                                    //禁止通过传参方式更新数据的主键uuid及数据版本号
-                                    break;
-                                }
-                            }
-                            if(field.get("version") != null){
-                                if(field.getString("version").equals(key)){
-                                    //禁止通过传参方式更新数据的主键uuid及数据版本号
-                                    break;
-                                }
-                            }
                         }
-                        update.append(" version = ").append(updVersion);
-                        if (!tableCode.split("_")[0].equals("cr")){
-                            //数据最后访问时间
-                            update.append(" ,last_time = '").append(dateParse.formatDate("yyyy-MM-dd HH:mm:ss", new Date())).append("'");
-                        }
-                        update.append(" where id = '").append(params.get("id")).append("'");
-                        //TODO sys系统源数据在更新时需要追加is_lock条件
-                        if (tableCode.split("_")[0].equals("sys")){
-                            update.append(" and is_lock = 0 ");
-                        }
-                        //执行新增
-                        BaseData bd = new BaseData();
-                        bd.put("executeSql",update.toString());
-                        return baseInteraction.execute(bd);
                     }
+                    update.append(" version = ").append(updVersion);
+                    if (!tableCode.split("_")[0].equals("cr")) {
+                        //数据最后访问时间
+                        update.append(" ,last_time = '").append(dateParse.formatDate("yyyy-MM-dd HH:mm:ss", new Date())).append("'");
+                    }
+                    update.append(" where id = ").append(StringEscapeUtils.escapeSql(params.get("id") + ""));
+                    //TODO sys系统源数据在更新时需要追加is_lock条件
+                    if (tableCode.split("_")[0].equals("sys")) {
+                        update.append(" and is_lock = 0 ");
+                    }
+                    //执行新增
+                    BaseData bd = new BaseData();
+                    bd.put("executeSql", update.toString());
+                    state = baseInteraction.execute(bd);
                 }else{
                     state = -1;
                 }
@@ -293,7 +304,8 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
             if(params.get("id") != null){
                 if(!(params.get("id")+"").isEmpty()){
                     BaseData bd = new BaseData();
-                    String delete = "delete from "+tableCode+" where id = " + id;
+                    //暴力删除仅允许删除非活跃数据（state状态为禁用，经过soft软删除的数据）
+                    String delete = "delete from " + tableCode + " where state = 1 and  id = " + StringEscapeUtils.escapeSql(params.get("id") + "");
                     //TODO system系统源数据在删除时需要追加is_lock条件
                     if (tableCode.split("_")[0].equals("sys")){
                         delete  +=  " and is_lock = 0 ";
@@ -302,10 +314,10 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                     state = baseInteraction.execute(bd);
                 }
             }else{
-                return -1;
+                state = -1;
             }
         }else{
-            return -2;
+            state = -2;
         }
         return state;
     }

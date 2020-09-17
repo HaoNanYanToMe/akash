@@ -17,8 +17,7 @@ import java.util.List;
  *       TODO : 系统·核心逻辑 （独立）
  * @author HaoNan Yan
  */
-@Service("roleSchema")
-@Transactional(readOnly = true)
+@Service
 public class roleSchema extends BaseSchema {
 
     /**
