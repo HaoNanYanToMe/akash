@@ -28,8 +28,10 @@ public class AkashApplicationTests {
 
     @Autowired
     BaseController baseController;
-//
 
+
+    // 使用SQL引擎进行数据查询
+    //    @Test
     public void testPrism(){
         System.out.println(selectEngine("80272d292a99479890717a04df11e900"));
         //TODO 当前引擎仅做测试使用
@@ -37,9 +39,8 @@ public class AkashApplicationTests {
     }
 
     //基本接口的增删改查
-//    @Test
     public void base() {
-        String tid = JSON.toJSONString("57c4b85014b4447dbf21b0c6abcfe9f2");
+        String tid = "57c4b85014b4447dbf21b0c6abcfe9f2";
         String result = add(tid);
         JSONObject jo = JSONObject.parseObject(result);
         String id = jo.getString("result");
@@ -53,6 +54,20 @@ public class AkashApplicationTests {
         System.out.println("Delete : " + deleteData(tid, id));
         System.out.println(selectOne(tid, id));
     }
+
+    @Test
+    public void menu_Test(){
+        BaseData  execute = new BaseData();
+        execute.put("name","测试");
+        execute.put("code","test");
+        execute.put("is_parent",1);
+        execute.put("is_lock",0);
+        execute.put("pid",-1);
+        execute.put("order_number",0);
+        System.out.println(JSON.toJSONString(execute));
+//        System.out.println(baseController.executeUnify("menu","addMenuNode","",JSON.toJSONString(execute)));
+    }
+
 
     //数据引擎查询数据
     public String selectEngine(String id) {

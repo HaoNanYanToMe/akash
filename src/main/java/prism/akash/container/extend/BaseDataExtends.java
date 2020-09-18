@@ -49,7 +49,7 @@ public class BaseDataExtends implements Serializable {
                                 .joinBuild("cr_tables", "t", joinType.R)
                                 .joinColunm("c", "tid", "id").joinFin()
                                 .queryBuild(queryType.and, "c", "@tid", conditionType.EQ, null, id)
-                                .queryBuild(queryType.and, "c", "@state", conditionType.EQ, null, "1")
+                                .queryBuild(queryType.and, "c", "@state", conditionType.EQ, null, "0")
                                 .selectFin(""));
                 if (colArray.size() > 0) {
                     sqlEngine = new sqlEngine();
@@ -91,7 +91,7 @@ public class BaseDataExtends implements Serializable {
                     new sqlEngine()
                             .execute("cr_engineexecute", "e")
                             .queryBuild(queryType.and, "e", "eid", conditionType.EQ, null,"eid")
-                            .queryBuild(queryType.and, "e", "@state", conditionType.EQ, null, "1")
+                            .queryBuild(queryType.and, "e", "@state", conditionType.EQ, null, "0")
                             .dataSort("e", "sorts", sortType.ASC)
                             .selectFin(JSON.toJSONString(sel))
                     :
@@ -101,7 +101,7 @@ public class BaseDataExtends implements Serializable {
                             .queryBuild(queryType.and, "e", "eid", conditionType.EQ, null,"eid")
                             .queryBuild(queryType.and, "en", "@state", conditionType.EQ, null, "0")
                             .queryBuild(queryType.and, "en", "@engineType", conditionType.EQ, null, "0")
-                            .queryBuild(queryType.and, "e", "@state", conditionType.EQ, null, "1")
+                            .queryBuild(queryType.and, "e", "@state", conditionType.EQ, null, "0")
                             .dataSort("e", "sorts", sortType.ASC)
                             .selectFin(JSON.toJSONString(sel)));
             if (engineFlow.size() > 0) {

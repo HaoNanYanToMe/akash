@@ -51,7 +51,9 @@ public class BaseProxy implements Serializable {
             m1 = clazz.getDeclaredMethod(methodName, BaseData.class);
             //封装执行参数
             BaseData execute = new BaseData();
-            execute.put("id", id);
+            //TODO 使用sql引擎时，不需要对ID进行JSON化处理
+            boolean isSqlEngine = schemaName.equals("base") && (methodName.equals("select") || methodName.equals("selectPage"));
+            execute.put("id", isSqlEngine ? id : JSON.toJSONString(id));
             execute.put("executeData", JSON.toJSONString(executeData));
             //执行操作
             reObject = m1.invoke(obj, execute);

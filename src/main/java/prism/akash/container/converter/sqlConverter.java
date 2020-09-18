@@ -1,6 +1,5 @@
 package prism.akash.container.converter;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -111,7 +110,7 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
                                 .execute("cr_field", "f")
                                 .appointColumn("f", groupType.DEF, "name,code")
                                 .queryBuild(queryType.and, "f", "@tid", conditionType.EQ, groupType.DEF, ac.split("\\.")[0])
-                                .queryBuild(queryType.and, "f", "@state", conditionType.EQ, groupType.DEF, "1")
+                                .queryBuild(queryType.and, "f", "@state", conditionType.EQ, groupType.DEF, "0")
                                 .selectFin(""));
                         execute.remove("outFiled");
                         for (BaseData f : filed){
@@ -151,7 +150,7 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
                         .addData("@code", codeAndName[0].trim())
                         .addData("@engineId", eid)
                         .addData("@version", ver)
-                        .addData("@state", "1")
+                        .addData("@state", "0")
                         .insertFin("");
                 baseApi.execute(addParam);
             }
@@ -170,7 +169,7 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
                 .execute(table, "e")
                 .appointColumn("e",groupType.DEF,"version")
                 .queryBuild(queryType.and, "e", "@engineId", conditionType.EQ, null,eid)
-                .queryBuild(queryType.and, "e", "@state", conditionType.EQ, null, "1")
+                .queryBuild(queryType.and, "e", "@state", conditionType.EQ, null, "0")
                 .dataSort("e", "version", sortType.DESC)
                 .dataPaging("@0","@1")
                 .selectFin(""));
@@ -181,7 +180,7 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
     private int updateState(String table,String eid){
         //更新状态
         return baseApi.execute(new sqlEngine().execute(table, "c")
-                .updateData("@state",  "0")
+                .updateData("@state",  "1")
                 .queryBuild(queryType.and, "c", "@engineId", conditionType.EQ, groupType.DEF, eid)
                 .updateFin(""));
     }
@@ -198,7 +197,7 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
                 .appointColumn("c", groupType.DEF, "id")
                 .queryBuild(queryType.and, "c", "@code", conditionType.EQ, groupType.DEF, code)
                 .queryBuild(queryType.and, "c", "@engineType", conditionType.EQ, groupType.DEF, "0")
-                .queryBuild(queryType.and, "c", "@state", conditionType.EQ, groupType.DEF, "1").selectFin(""));
+                .queryBuild(queryType.and, "c", "@state", conditionType.EQ, groupType.DEF, "0").selectFin(""));
         return exist.size() > 0 ? exist.get(0) : null;
     }
 
@@ -225,7 +224,7 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
                     .addData("@code", code)
                     .addData("@note", note)
                     .addData("@engineType", "0")
-                    .addData("@state", "1")
+                    .addData("@state", "0")    //TODO 正式版本该状态创建时为2 （待审核）
                     .addData("@executeVail", "0")
                     .addData("@version", initData.getVersion() + "")
                     .insertFin("");
@@ -255,7 +254,7 @@ public class sqlConverter extends BaseDataExtends implements Serializable {
             sqlEngine addExecute = new sqlEngine().execute("cr_engineexecute", "")
                     .addData("@id", id)
                     .addData("@eid", isChild ? initData.getChildId() : initData.getEngineId())
-                    .addData("@state", "1")
+                    .addData("@state", "0")
                     .addData("@version", initData.getVersion() + "")
                     .addData("@sorts", isChild ? initData.getChildSort() + "" : initData.getSort() + "");
             LinkedHashMap<String, Object> params = StringKit.parseLinkedMap(data);

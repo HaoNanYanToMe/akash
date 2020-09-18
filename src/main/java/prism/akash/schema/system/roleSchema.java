@@ -21,20 +21,24 @@ import java.util.List;
 public class roleSchema extends BaseSchema {
 
     /**
-     * ①获取系统默认权限树
+     * 获取系统默认权限树
      *
-     * @param systemName 系统名称
+     * @param executeData
+     *              {
+     *                  systemName 系统名称
+     *              }
      * @return
      */
-    public String getRootRoleTree(String systemName) {
-        String mTree = redisTool.get("system:role:root:tree");
+    public List<BaseData> getRootRoleTree(BaseData executeData) {
+        List<BaseData> mTree = redisTool.getList("system:role:root:tree",null,null);
         if (mTree.isEmpty() || mTree == null) {
+            BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
             List<BaseData> list = new ArrayList<>();
 
             BaseData tree = new BaseData();
             tree.put("id", 0);
 
-            tree.put("title", systemName);
+            tree.put("title", data.get("systemName"));
             tree.put("expand", true);
             tree.put("is_lock", false);
             tree.put("version", 0);
@@ -42,7 +46,7 @@ public class roleSchema extends BaseSchema {
 
             list.add(tree);
 
-            mTree = JSON.toJSONString(list);
+            mTree = list;
             redisTool.set("system:role:root:tree", mTree, -1);
         }
         return mTree;
@@ -58,7 +62,7 @@ public class roleSchema extends BaseSchema {
      */
     private List<BaseData> getRoleNode(String pid) {
         //查询并获取当前递归节点数据信息
-        String selectPid = "select id,name,code,state,order_number,is_parent,version from sys_role where pid = '" + pid + "' order by order_number asc";
+        String selectPid = "select id,name,state,order_number,is_parent,version from sys_role where pid = '" + pid + "'  and state = 0  order by order_number asc";
         List<BaseData> roleList = baseApi.selectBase(new sqlEngine().setSelect(selectPid));
         List<BaseData> list = new ArrayList<>();
         for (BaseData role : roleList) {
@@ -89,9 +93,9 @@ public class roleSchema extends BaseSchema {
      * @return
      */
     @Transactional(readOnly = false)
-    public String addRoleNode(String executeData) {
+    public String addRoleNode(BaseData executeData) {
         //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
-        String result = baseApi.insertData(getTableIdByCode("sys_role"), executeData);
+        String result = baseApi.insertData(getTableIdByCode("sys_role"), StringKit.parseSchemaExecuteData(executeData));
         if (!result.equals("")) {
             if (!result.equals("-1") && !result.equals("-2")) {
                 //TODO 新增成功时,重置redis缓存
@@ -108,9 +112,9 @@ public class roleSchema extends BaseSchema {
      * @return
      */
     @Transactional(readOnly = false)
-    public int updateRoleNode(String executeData) {
+    public int updateRoleNode(BaseData executeData) {
         //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
-        int result = baseApi.updateData(getTableIdByCode("sys_role"), executeData);
+        int result = baseApi.updateData(getTableIdByCode("sys_role"), StringKit.parseSchemaExecuteData(executeData));
         if (result == 1) {
             //TODO 更新成功,重置redis缓存
             redisTool.delete("system:role:root:tree");
@@ -126,14 +130,18 @@ public class roleSchema extends BaseSchema {
      * @return
      */
     @Transactional(readOnly = false)
-    public int deleteRoleNode(String executeData) {
+    public int deleteRoleNode(BaseData executeData) {
         int result = 0;
+        BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
         //查询当前节点下是否拥有子节点
-        LinkedHashMap<String, Object> params = StringKit.parseLinkedMap(executeData);
-        int size = baseApi.selectBase(new sqlEngine().setSelect(" select id from  sys_role where pid = '" + params.get("id") + "'")).size();
+        int size = baseApi.selectBase(new sqlEngine().setSelect(" select id from  sys_role where pid = '" + data.get("id") + "'")).size();
         if (size == 0) {
+            //TODO 使用软删除对数据进行更新操作
+            BaseData execute = new BaseData();
+            execute.put("id", getTableIdByCode("sys_role"));
+            execute.put("executeData", JSON.toJSONString(data));
             //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
-            result = baseApi.deleteData(getTableIdByCode("sys_role"), executeData);
+            result = deleteDataSoft(execute);
             if (result == 1) {
                 //TODO 删除成功,重置redis缓存
                 redisTool.delete("system:role:root:tree");

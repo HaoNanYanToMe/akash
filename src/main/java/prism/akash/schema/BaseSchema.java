@@ -85,7 +85,7 @@ public class BaseSchema implements Serializable {
      *                    executeData：  所需参数
      *                    {
      *                    *id :    需要查询的数据ID ※ 必传参数
-     *                    filed : 指定需要返回的字段
+     *                    fields : 指定需要返回的字段
      *                    }
      *                    }
      * @return
@@ -290,13 +290,13 @@ public class BaseSchema implements Serializable {
         //通过redis获取缓存数据
         List<BaseData> tableList = redisTool.getList("core:table:list", null, null);
         if (tableList.size() == 0) {
-            tableList = baseApi.selectBase(new sqlEngine().setSelect(" select id,code,name from cr_tables where state = 1 "));
+            tableList = baseApi.selectBase(new sqlEngine().setSelect(" select id,code,name from cr_tables where state = 0 "));
             redisTool.set("core:table:list", tableList, -1);
         }
         //通过lambda表达式获取指定数据
         if (tableList != null && tableList.size() > 0) {
             List<BaseData> result = tableList.stream().filter(t -> t.get("code").equals(tableCode)).collect(Collectors.toList());
-            return result.size() > 0 ? result.get(0).getString("id") : null;
+            return result.size() > 0 ? JSON.toJSONString(result.get(0).getString("id")) : null;
         } else {
             return null;
         }

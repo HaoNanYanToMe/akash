@@ -34,7 +34,7 @@ public class BaseController extends BaseProxy implements Serializable {
      *
      * @param schemaName    需要调用的业务逻辑名称，默认使用base
      * @param methodName    需要请求的方法名称
-     * @param id            数据表id /  sql数据引擎id      TODO  ※ 必传参数！
+     * @param id            数据表id /  sql数据引擎id    TODO  ※ schemaName非base时，允许为空
      * @param data          封装参数  方法所需参数集合    TODO  ※ 允许为空，为空时建议传入 -> {}
      *                      {
      *                         *id  :
@@ -64,7 +64,7 @@ public class BaseController extends BaseProxy implements Serializable {
     public String executeUnify(
             @RequestParam(value = "schemaName", required = false, defaultValue = "base") String schemaName,
             @RequestParam(value = "methodName") String methodName,
-            @RequestParam(value = "id") String id,
+            @RequestParam(value = "id", required = false, defaultValue = "") String id,
             @RequestParam(value = "data", required = false, defaultValue = "{}") String data) {
         if (accessTool.accessParamCheck(schemaName, methodName, id)) {
             //⚠ 检测到注入攻击
@@ -74,8 +74,8 @@ public class BaseController extends BaseProxy implements Serializable {
             return JSON.toJSONString(result);
         } else {
             //数据正常,放行
-            BaseData execute = JSON.parseObject(data, BaseData.class);
-            return StringKit.formateSchemaData(JSON.toJSONString(invokeMethod(schemaName, methodName, id, execute)));
+            BaseData execute = StringKit.parseBaseData(data);
+            return StringKit.formateSchemaData(invokeMethod(schemaName, methodName, id, execute));
         }
     }
 
