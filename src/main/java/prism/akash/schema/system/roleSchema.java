@@ -9,7 +9,6 @@ import prism.akash.schema.BaseSchema;
 import prism.akash.tools.StringKit;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
@@ -87,6 +86,42 @@ public class roleSchema extends BaseSchema {
     }
 
     /**
+     * 根据ID获取指定权限节点的信息
+     *
+     * @param executeData 待获取的数据节点ID
+     *                    {
+     *                    id: 数据节点id
+     *                    }
+     * @return
+     */
+    public BaseData getRoleNodeData(BaseData executeData) {
+        BaseData resultData = new BaseData();
+        BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
+        String result = redisTool.get("system:role:id:"+data.get("id"));
+        if (result.isEmpty() || result == null){
+            resultData = selectByOne(enCapsulationData("sys_role", executeData));
+            //如果获取值为空,则锁定当前数据1分钟,1分钟内禁止对数据库进行访问
+            if (resultData == null) {
+                redisTool.set("system:role:id:" + data.get("id"), JSON.toJSONString(new BaseData()), 60000);
+            } else {
+                redisTool.set("system:role:id:" + data.get("id"), JSON.toJSONString(resultData), -1);
+            }
+        }
+        return resultData;
+    }
+
+    /**
+     * 内部方法：对单数据节点的增删改缓存操作进行优化提出
+     * @param id    数据节点id
+     * @return
+     */
+    private BaseData redisCache(String id) {
+        BaseData select = new BaseData();
+        select.put("id", id);
+        return getRoleNodeData(pottingData("sys_role", select));
+    }
+
+    /**
      * 新增权限节点
      *
      * @param executeData 权限节点的数据对象
@@ -98,6 +133,7 @@ public class roleSchema extends BaseSchema {
         String result = baseApi.insertData(getTableIdByCode("sys_role"), StringKit.parseSchemaExecuteData(executeData));
         if (!result.equals("")) {
             if (!result.equals("-1") && !result.equals("-2")) {
+                redisCache(result);
                 //TODO 新增成功时,重置redis缓存
                 redisTool.delete("system:role:root:tree");
             }
@@ -116,6 +152,8 @@ public class roleSchema extends BaseSchema {
         //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
         int result = baseApi.updateData(getTableIdByCode("sys_role"), StringKit.parseSchemaExecuteData(executeData));
         if (result == 1) {
+            BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
+            redisCache(data.get("id") + "");
             //TODO 更新成功,重置redis缓存
             redisTool.delete("system:role:root:tree");
         }
@@ -138,13 +176,13 @@ public class roleSchema extends BaseSchema {
         if (size == 0) {
             //TODO 使用软删除对数据进行更新操作
             //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
-            result = deleteDataSoft(enCapsulatonData("sys_role",executeData));
+            result = deleteDataSoft(enCapsulationData("sys_role", executeData));
             if (result == 1) {
+                redisTool.delete("system:role:id:" + data.get("id"));
                 //TODO 删除成功,重置redis缓存
                 redisTool.delete("system:role:root:tree");
             }
         }
         return result;
     }
-
 }

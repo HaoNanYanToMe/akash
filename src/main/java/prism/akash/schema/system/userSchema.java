@@ -64,7 +64,7 @@ public class userSchema extends BaseSchema {
     public int deleteSoftUser(BaseData executeData) {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
         //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
-        int result = deleteDataSoft(enCapsulatonData("sys_user", executeData));
+        int result = deleteDataSoft(enCapsulationData("sys_user", executeData));
         if (result == 1) {
             //更新并重置当前用户数据缓存
             redisTool.delete("system:user:id:" + data.get("id"));
@@ -85,7 +85,7 @@ public class userSchema extends BaseSchema {
     @Transactional(readOnly = false)
     public int deleteUser(BaseData executeData) {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
-        int result = deleteData(enCapsulatonData("sys_user", executeData));
+        int result = deleteData(enCapsulationData("sys_user", executeData));
         if (result == 1) {
             //清除当前用户缓存
             redisTool.delete("system:user:id:" + data.get("id"));
@@ -106,11 +106,11 @@ public class userSchema extends BaseSchema {
         BaseData user = null;
         //2.获取ID
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
-        //3.从Redis中尝试获取缓存诗句
+        //3.从Redis中尝试获取缓存数据
         String userData = redisTool.get("system:user:id:" + data.get("id"));
         if (userData.isEmpty() || userData == null) {
             //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
-            user = selectByOne(enCapsulatonData("sys_user", executeData));
+            user = selectByOne(enCapsulationData("sys_user", executeData));
             if (user != null) {
                 //将用户数存入Redis
                 redisTool.set("system:user:id:" + data.get("id"), JSON.toJSONString(user), -1);

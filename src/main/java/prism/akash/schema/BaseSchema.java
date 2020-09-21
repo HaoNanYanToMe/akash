@@ -306,6 +306,15 @@ public class BaseSchema implements Serializable {
     /**
      * 根据table的Code名称对待执行executeData对象进行重定义封装
      * TODO 仅提供于Schema层使用
+     * TODO 请注意，本方法仅适用于executeData为如下格式时使用
+     *      {
+     *          id:
+     *          executeData:{
+     *
+     *          }
+     *      }
+     * TODO 解析并提取controller层通过proxy封装的数据进行二次定义封装
+     *
      * 常见使用于以下关联方法
      * ↓↓↓↓↓
      * 数据软删除 deleteDataSoft
@@ -315,11 +324,35 @@ public class BaseSchema implements Serializable {
      * @param executeData
      * @return
      */
-    protected BaseData enCapsulatonData(String tableName, BaseData executeData) {
+    protected BaseData enCapsulationData(String tableName, BaseData executeData) {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
+        return pottingData(tableName, data);
+    }
+
+
+    /**
+     * 根据table的Code名称对待执行executeData对象进行重定义封装
+     * TODO 仅提供于Schema层使用
+     * TODO 请注意，本方法仅适用于executeData为如下格式时使用
+     * executeData:{}
+     *
+     * 常见使用于以下关联方法
+     * ↓↓↓↓↓
+     * 数据新增 insertData
+     * 数据更新 updateData
+     * 用户自定义方法 methodXX……
+     *
+     * @param tableName
+     * @param executeData
+     * @return
+     */
+    protected BaseData pottingData(String tableName, BaseData executeData) {
         BaseData execute = new BaseData();
-        execute.put("id", getTableIdByCode(tableName));
-        execute.put("executeData", JSON.toJSONString(data));
+        execute.put("id", tableName.isEmpty() || tableName == null ? "" : getTableIdByCode(tableName));
+        execute.put("executeData", JSON.toJSONString(executeData));
         return execute;
     }
+
+
+
 }

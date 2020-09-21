@@ -100,16 +100,50 @@ public class StringKit {
      * @return
      */
     private static String formateType(String content) {
-        return content.length() == 32 ? content :
-                content.equals("-1") ? "操作失败：参数字段不匹配（可操作字段不存在或「id」参数未填写）" :
-                        content.equals("-2") ? "操作失败：数据表不存在！" :
-                                content.equals("-3") ? "操作失败：数据版本不匹配（当前数据已「过期」，请重试）" :
-                                        content.equals("0") ? "操作失败：执行异常，请联系管理员" :
-                                                content.equals("-8") ? "操作失败：待操作数据不存在" :
-                                                        content.equals("-9") ? "操作失败：参数字段不匹配（「version」参数未填写）" :
-                                                                content.equals("1") ? "操作成功" :
-                                                                        content.equals("") ? "操作失败：待操作数据不存在" :
-                                                                                "操作失败：未知错误，请联系管理员";
+        String result = "操作失败：未知错误，请联系管理员";
+
+        if (content.length() == 32) {
+            result = content;
+        } else {
+            switch (content) {
+                case "1":
+                    result = "操作成功";
+                    break;
+                case "-1":
+                    result = "操作失败：参数字段不匹配（可操作字段不存在或「id」参数未填写）";
+                    break;
+                case "-2":
+                    result = "操作失败：数据表不存在";
+                    break;
+                case "-3":
+                    result = "操作失败：数据版本不匹配（当前数据已「过期」，请重试）";
+                    break;
+                case "0":
+                    result = "操作失败：执行异常，请联系管理员";
+                    break;
+                case "-8":
+                    result = "操作失败：待操作数据不存在";
+                    break;
+                case "-9":
+                    result = "操作失败：参数字段不匹配（「version」参数未填写）";
+                    break;
+                case "-5":
+                    result = "操作失败：缺少关键字段，请检查后重试";
+                    break;
+                case "":
+                    result = "操作失败：待操作数据不存在";
+                    break;
+                case "UR1":
+                    result = "操作失败：用户不存在";
+                    break;
+                case "UR2":
+                    result = "操作失败：权限未定义";
+                    break;
+                default:
+                    break;
+            }
+        }
+        return result;
     }
 
     /**

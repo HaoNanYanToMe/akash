@@ -1087,7 +1087,7 @@ public class sqlEngine implements Serializable {
 
     //TODO :  拓展相关  引擎授权（增删改）  仅限在schema逻辑层使用↓↓↓↓↓↓↓↓↓
     public sqlEngine setExecute(String sql){
-        engine.put("execute" , sql);
+        engine.put("executeSql" , sql);
         return this;
     }
 }

@@ -1,6 +1,5 @@
 package prism.akash.schema.system;
 
-import com.alibaba.fastjson.JSON;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import prism.akash.container.BaseData;
@@ -87,6 +86,38 @@ public class menuSchema extends BaseSchema {
     }
 
     /**
+     * 根据ID获取指定菜单节点的信息
+     *
+     * @param executeData 待获取的数据节点ID
+     *                    {
+     *                    id: 数据节点id
+     *                    }
+     * @return
+     */
+    public BaseData getMenuNodeData(BaseData executeData) {
+        BaseData result = selectByOne(enCapsulationData("sys_menu", executeData));
+        //如果获取值为空,则锁定当前数据1分钟,1分钟内禁止对数据库进行访问
+        if (result == null) {
+            redisTool.set("system:menu:id:" + result, new BaseData(), 60000);
+        } else {
+            redisTool.set("system:menu:id:" + result, executeData, -1);
+        }
+        return result;
+    }
+
+    /**
+     * 内部方法：对单数据节点的增删改缓存操作进行优化提出
+     * @param id    数据节点id
+     * @return
+     */
+    private BaseData redisCache(String id) {
+        BaseData select = new BaseData();
+        select.put("id", id);
+        return getMenuNodeData(pottingData("sys_menu", select));
+    }
+
+
+    /**
      * 新增菜单节点
      *
      * @param executeData Menu节点的数据对象
@@ -98,6 +129,7 @@ public class menuSchema extends BaseSchema {
         String result = baseApi.insertData(getTableIdByCode("sys_menu"), StringKit.parseSchemaExecuteData(executeData));
         if (!result.equals("")) {
             if (!result.equals("-1") && !result.equals("-2")) {
+                redisCache(result);
                 //TODO 新增成功时,重置redis缓存
                 redisTool.delete("system:menu:root:tree");
             }
@@ -116,6 +148,8 @@ public class menuSchema extends BaseSchema {
         //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
         int result = baseApi.updateData(getTableIdByCode("sys_menu"), StringKit.parseSchemaExecuteData(executeData));
         if (result == 1) {
+            BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
+            redisCache(data.get("id") + "");
             //TODO 更新成功,重置redis缓存
             redisTool.delete("system:menu:root:tree");
         }
@@ -138,8 +172,9 @@ public class menuSchema extends BaseSchema {
         if (size == 0) {
             //TODO 使用软删除对数据进行更新操作
             //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
-            result = deleteDataSoft(enCapsulatonData("sys_menu",executeData));
+            result = deleteDataSoft(enCapsulationData("sys_menu", executeData));
             if (result == 1) {
+                redisTool.delete("system:menu:id:" + data.get("id"));
                 //TODO 删除成功,重置redis缓存
                 redisTool.delete("system:menu:root:tree");
             }
