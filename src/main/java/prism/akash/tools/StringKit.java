@@ -1,12 +1,14 @@
 package prism.akash.tools;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import prism.akash.container.BaseData;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,32 +23,35 @@ public class StringKit {
     /**
      * 判断Key或value中是否含有特殊字符
      * TODO ：主要提供给sqlEngine校验使用,仅允许及开放使用下划线_
+     *
      * @param str
      * @return true为包含，false为不包含
      */
     public static boolean isSpecialChar(String str) {
         String regEx = "[ `~!@#$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]|\n|\r|\t";
-        return isSpecial(regEx,str);
+        return isSpecial(regEx, str);
     }
 
     /**
      * 判断Column字段是否含有非法字符
      * TODO ：主要提供给sqlStepBuild校验使用,仅允许及开放使用:_#,@
+     *
      * @param str true为包含，false为不包含
      * @return
      */
     public static boolean isSpecialColumn(String str) {
         String regEx = "[ `~!$%^&*()+=|{}':;'\\[\\].<>/?~！￥%……&*（）——+|{}【】‘；：”“’。，、？]|\n|\r|\t";
-        return isSpecial(regEx,str);
+        return isSpecial(regEx, str);
     }
 
     /**
      * 通用代码提取
+     *
      * @param regEx
      * @param str
      * @return
      */
-    private static boolean isSpecial(String regEx,String str) {
+    private static boolean isSpecial(String regEx, String str) {
         Pattern p = Pattern.compile(regEx);
         Matcher m = p.matcher(str);
         return m.find();
@@ -63,10 +68,11 @@ public class StringKit {
 
     /**
      * 将json字符串转换为有序集合LinkedHashMap
-     * @param data     待处理的JSON字符串
+     *
+     * @param data 待处理的JSON字符串
      * @return
      */
-    public static LinkedHashMap<String, Object> parseLinkedMap(String data){
+    public static LinkedHashMap<String, Object> parseLinkedMap(String data) {
         return JSONObject.parseObject(data, new TypeReference<LinkedHashMap<String, Object>>() {
         });
     }
@@ -80,10 +86,10 @@ public class StringKit {
     public static String formateSchemaData(Object data) {
         String content = String.valueOf(data);
         //TODO 判断当前数据格式是否为基础格式 String int
-        boolean existBase = data instanceof String || data instanceof  Integer;
+        boolean existBase = data instanceof String || data instanceof Integer;
         Map<String, Object> result = new HashMap<>();
         result.put("result", !existBase ? !content.equals("null") ? "1" : "-8" : content.length() == 32 ? "1" : data);
-        result.put("resultData", !existBase ? data : formateType(content));
+        result.put("resultData", !existBase ? !content.equals("null") ? data : "操作失败：待操作数据不存在" : formateType(content));
         return JSON.toJSONString(result);
     }
 
@@ -99,7 +105,7 @@ public class StringKit {
                         content.equals("-2") ? "操作失败：数据表不存在！" :
                                 content.equals("-3") ? "操作失败：数据版本不匹配（当前数据已「过期」，请重试）" :
                                         content.equals("0") ? "操作失败：执行异常，请联系管理员" :
-                                                content.equals("-8")   ? "操作失败：待操作数据不存在" :
+                                                content.equals("-8") ? "操作失败：待操作数据不存在" :
                                                         content.equals("-9") ? "操作失败：参数字段不匹配（「version」参数未填写）" :
                                                                 content.equals("1") ? "操作成功" :
                                                                         content.equals("") ? "操作失败：待操作数据不存在" :

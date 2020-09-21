@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
 import prism.akash.container.sqlEngine.sqlEngine;
+import prism.akash.tools.StringKit;
 import prism.akash.tools.reids.RedisTool;
 
 import java.io.Serializable;
@@ -302,4 +303,23 @@ public class BaseSchema implements Serializable {
         }
     }
 
+    /**
+     * 根据table的Code名称对待执行executeData对象进行重定义封装
+     * TODO 仅提供于Schema层使用
+     * 常见使用于以下关联方法
+     * ↓↓↓↓↓
+     * 数据软删除 deleteDataSoft
+     * 数据指定ID查询 selectByOne
+     *
+     * @param tableName
+     * @param executeData
+     * @return
+     */
+    protected BaseData enCapsulatonData(String tableName, BaseData executeData) {
+        BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
+        BaseData execute = new BaseData();
+        execute.put("id", getTableIdByCode(tableName));
+        execute.put("executeData", JSON.toJSONString(data));
+        return execute;
+    }
 }

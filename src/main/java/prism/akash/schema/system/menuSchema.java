@@ -137,11 +137,8 @@ public class menuSchema extends BaseSchema {
         int size = baseApi.selectBase(new sqlEngine().setSelect(" select id from  sys_menu where pid = '" + data.get("id") + "'")).size();
         if (size == 0) {
             //TODO 使用软删除对数据进行更新操作
-            BaseData execute = new BaseData();
-            execute.put("id", getTableIdByCode("sys_menu"));
-            execute.put("executeData", JSON.toJSONString(data));
             //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
-            result = deleteDataSoft(execute);
+            result = deleteDataSoft(enCapsulatonData("sys_menu",executeData));
             if (result == 1) {
                 //TODO 删除成功,重置redis缓存
                 redisTool.delete("system:menu:root:tree");
