@@ -281,6 +281,21 @@ public class BaseSchema implements Serializable {
 
 
     /**
+     * 内部方法：用于获取core_tables的缓存数据
+     *
+     * @return
+     */
+    protected List<BaseData> getTableList() {
+        //通过redis获取缓存数据
+        List<BaseData> tableList = redisTool.getList("core:table:list", null, null);
+        if (tableList.size() == 0) {
+            tableList = baseApi.selectBase(new sqlEngine().setSelect(" select id,code,name from cr_tables where state = 0 "));
+            redisTool.set("core:table:list", tableList, -1);
+        }
+        return tableList;
+    }
+
+    /**
      * 根据table的code值获取tableId
      * TODO 仅提供于Schema层使用
      *
@@ -289,11 +304,7 @@ public class BaseSchema implements Serializable {
      */
     protected String getTableIdByCode(String tableCode) {
         //通过redis获取缓存数据
-        List<BaseData> tableList = redisTool.getList("core:table:list", null, null);
-        if (tableList.size() == 0) {
-            tableList = baseApi.selectBase(new sqlEngine().setSelect(" select id,code,name from cr_tables where state = 0 "));
-            redisTool.set("core:table:list", tableList, -1);
-        }
+        List<BaseData> tableList = getTableList();
         //通过lambda表达式获取指定数据
         if (tableList != null && tableList.size() > 0) {
             List<BaseData> result = tableList.stream().filter(t -> t.get("code").equals(tableCode)).collect(Collectors.toList());
@@ -352,7 +363,6 @@ public class BaseSchema implements Serializable {
         execute.put("executeData", JSON.toJSONString(executeData));
         return execute;
     }
-
 
 
 }

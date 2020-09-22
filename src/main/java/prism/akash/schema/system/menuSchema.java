@@ -97,10 +97,12 @@ public class menuSchema extends BaseSchema {
     public BaseData getMenuNodeData(BaseData executeData) {
         BaseData result = selectByOne(enCapsulationData("sys_menu", executeData));
         //如果获取值为空,则锁定当前数据1分钟,1分钟内禁止对数据库进行访问
+        BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
+        String id = data.get("id") + "";
         if (result == null) {
-            redisTool.set("system:menu:id:" + result, new BaseData(), 60000);
+            redisTool.set("system:menu:id:" + id, new BaseData(), 60000);
         } else {
-            redisTool.set("system:menu:id:" + result, executeData, -1);
+            redisTool.set("system:menu:id:" + id, result, -1);
         }
         return result;
     }

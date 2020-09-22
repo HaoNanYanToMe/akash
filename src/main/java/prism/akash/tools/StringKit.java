@@ -139,6 +139,12 @@ public class StringKit {
                 case "UR2":
                     result = "操作失败：权限未定义";
                     break;
+                case "UR3":
+                    result = "操作失败：菜单未定义";
+                    break;
+                case "UR4":
+                    result = "操作失败：数据源未定义";
+                    break;
                 default:
                     break;
             }

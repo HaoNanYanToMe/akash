@@ -29,7 +29,7 @@ public class AsyncExecutor {
      * **注意：Spring的cron表达式只需要六个参数(秒 分 时 日 月 周)
      * ** 每日01时执行,拉取上一日增量数据
      */
-//    @Scheduled(cron = "00 28 17 * * ?")
+//    @Scheduled(cron = "50 16 11 * * ?")
     private void configureTasks() throws Exception{
         logger.info("定时任务：核心数据同步Loading……"+new Date());
         logger.info("定时任务执行结果："+JSON.toJSONString(asyncInitData.executor()));

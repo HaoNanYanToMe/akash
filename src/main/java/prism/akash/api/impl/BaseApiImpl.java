@@ -130,14 +130,16 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
      * @return
      */
     private String getTableCode(String id){
-        String code = redisTool.get("table:code:id:" + id);
+        //TODO 由前端接取的id数据经过proxy封装后会附带双引号,故需要在添加缓存时去掉，避免后期使用时产生混淆
+        String cacheId = id.replaceAll("\"","");
+        String code = redisTool.get("core:table:code:id:" + cacheId);
         if (code.isEmpty() || code == null) {
             BaseData select = new BaseData();
             select.put("select", "select code from cr_tables where state = 0 and id = " + StringEscapeUtils.escapeSql(id));
             List<BaseData> tables = baseInteraction.select(select);
             code = tables.size() > 0 ? tables.get(0).get("code") + "" : "";
             //持久化当前表code
-            redisTool.set("table:code:id:" + id, code, -1);
+            redisTool.set("core:table:code:id:" + cacheId, code, -1);
         }
         return code;
     }
@@ -148,14 +150,16 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
      * @return
      */
     private List<BaseData> getFieldList(String id){
+        //TODO 由前端接取的id数据经过proxy封装后会附带双引号,故需要在添加缓存时去掉，避免后期使用时产生混淆
+        String cacheId = id.replaceAll("\"","");
         //从redis缓存内读取相应数据
-        List<BaseData> fieldList = redisTool.getList("field:list:id:" + id, null, null);
+        List<BaseData> fieldList = redisTool.getList("core:field:list:id:" + cacheId, null, null);
         if (fieldList.size() == 0) {
             BaseData select = new BaseData();
             select.put("select", "select code from cr_field where state = 0 and tid = " + StringEscapeUtils.escapeSql(id));
             fieldList = baseInteraction.select(select);
             //持久化当前表字段
-            redisTool.set("field:list:id:" + id, fieldList, -1);
+            redisTool.set("core:field:list:id:" + cacheId, fieldList, -1);
         }
         return fieldList.size() > 0 ? fieldList : new ArrayList<>();
     }
@@ -345,7 +349,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
             suc = baseInteraction.execute(updateTable);
         }else{
             insertTable.put("executeSql",
-                    "INSERT INTO cr_tables (id,code,name,state,version) VALUES ('" + tid + "','" + tables[0] + "','" + tables[1] + "',1,'" + version + "')");
+                    "INSERT INTO cr_tables (id,code,name,state,version) VALUES ('" + tid + "','" + tables[0] + "','" + tables[1] + "',0,'" + version + "')");
             suc = baseInteraction.execute(insertTable);
         }
         if (suc == 1) {
@@ -355,7 +359,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
             //TODO: 同步字段表数据时，会批量更新先前数据状态为禁用（误操作保护）后重新提交创建
             baseInteraction.execute(new sqlEngine()
                     .execute("cr_field", "c")
-                    .updateData("@state", "0")
+                    .updateData("@state", "1")
                     .queryBuild(queryType.and, "c", "@tid", conditionType.EQ, groupType.DEF, tid)
                     .updateFin("").parseSql());
 
@@ -377,7 +381,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                 fe.put("type", dataAttribute.length > 0 ? dataAttribute[1] : "");
                 fe.put("size", dataAttribute.length > 1 ? dataAttribute[2] : "0.0");
                 fe.put("tid", tid);
-                fe.put("state", 1);
+                fe.put("state", 0);
                 fe.put("version", version);
                 fe.put("sorts", sorts);
                 fetch.add(fe);

@@ -50,9 +50,9 @@ public class userRoleSchema extends BaseSchema {
             String uid = data.getString("uid");
             String rid = data.getString("rid");
             //0.判断uid及rid是否存在
-            data.put("id", data.get("uid"));
+            data.put("id", uid);
             BaseData user = userSchema.selectUser(pottingData("", data));
-            data.put("id", data.get("rid"));
+            data.put("id", rid);
             BaseData role = roleSchema.getRoleNodeData(pottingData("", data));
             if (user == null) {
                 result = "UR1";
@@ -63,7 +63,7 @@ public class userRoleSchema extends BaseSchema {
                 List<BaseData> userData = inspectRole(uid, rid);
                 if (userData.size() == 0) {
                     //获取最新的数据下标
-                    List<BaseData> allRole = redisTool.getList("system:user:role:id:" + uid, null, null);
+                    List<BaseData> allRole = redisTool.getList("system:user_role:id:" + uid, null, null);
                     int newOrder = 0;
                     if (allRole.size() > 0) {
                         newOrder = allRole.get(allRole.size() - 1).getInter("order_number") + 1;
@@ -83,7 +83,7 @@ public class userRoleSchema extends BaseSchema {
      * 获取当前用户拥有的权限信息
      *
      * @param executeData {
-     *                    userId: 用户id
+     *                    uid: 用户id
      *                    }
      * @return
      */
@@ -91,7 +91,7 @@ public class userRoleSchema extends BaseSchema {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
         String userId = data.getString("uid");
         //从redis里获取当前用户的权限缓存
-        List<BaseData> userData = redisTool.getList("system:user:role:id:" + userId, null, null);
+        List<BaseData> userData = redisTool.getList("system:user_role:id:" + userId, null, null);
         if (userData.size() == 0) {
             //未获取到缓存数据，请求数据
             String roles = "select ur.id,ur.uid,ur.rid,ur.state,ur.order_number,r.name,r.note,r.is_supervisor " +
@@ -99,7 +99,7 @@ public class userRoleSchema extends BaseSchema {
                     "where r.state = 0 and  ur.uid = '" + userId + "' and ur.state = 0 order by ur.order_number asc";
             userData = baseApi.selectBase(new sqlEngine().setSelect(roles));
             if (userData.size() > 0) {
-                redisTool.set("system:user:role:id:" + userId, userData, -1);
+                redisTool.set("system:user_role:id:" + userId, userData, -1);
             }
         }
         return userData == null ? new ArrayList<>() : userData;
@@ -152,7 +152,7 @@ public class userRoleSchema extends BaseSchema {
         int result = baseApi.execute(new sqlEngine().setExecute(delete));
         if (result > 0) {
             //删除成功后,将redis缓存重置
-            redisTool.delete("system:user:role:id:" + userId);
+            redisTool.delete("system:user_role:id:" + userId);
         }
         return result;
     }
