@@ -34,6 +34,9 @@ public class BaseProxy implements Serializable {
      * @param methodName    需要代理执行调用的方法名称
      * @param id            数据表id /  sql数据引擎id
      * @param executeData   代理入参数据对象
+     *                      {
+     *                      *session_id: 当前用户可用授权 TODO Access鉴权类会根据当前会话会话自动补全本数据
+     *                      }
      * @return
      */
     public Object invokeMethod(String schemaName, String methodName, String id, BaseData executeData) {
@@ -54,6 +57,9 @@ public class BaseProxy implements Serializable {
             //TODO 使用sql引擎时，不需要对ID进行JSON化处理
             boolean isSqlEngine = schemaName.equals("base") && (methodName.equals("select") || methodName.equals("selectPage"));
             execute.put("id", isSqlEngine ? id : JSON.toJSONString(id));
+            //TODO ACCESS AOP数据加入
+            executeData.put("session_uid","");
+            executeData.put("session_rid","");
             execute.put("executeData", JSON.toJSONString(executeData));
             //执行操作
             reObject = m1.invoke(obj, execute);
@@ -96,5 +102,10 @@ public class BaseProxy implements Serializable {
             }
         }
         return sObj;
+    }
+
+
+    private boolean visitPermission(String schemaName, String methodName, String id,Method method,String rid){
+        return false;
     }
 }

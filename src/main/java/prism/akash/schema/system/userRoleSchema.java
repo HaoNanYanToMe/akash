@@ -7,6 +7,8 @@ import prism.akash.container.BaseData;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.schema.BaseSchema;
 import prism.akash.tools.StringKit;
+import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.checked.AccessType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +41,7 @@ public class userRoleSchema extends BaseSchema {
      *                    }
      * @return
      */
+    @Access({AccessType.ADD, AccessType.DEL})
     @Transactional(readOnly = false)
     public String bindUserRole(BaseData executeData) {
         String result = "-5";
@@ -87,6 +90,7 @@ public class userRoleSchema extends BaseSchema {
      *                    }
      * @return
      */
+    @Access({AccessType.SEL})
     public List<BaseData> getCurrentRole(BaseData executeData) {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
         String userId = data.getString("uid");

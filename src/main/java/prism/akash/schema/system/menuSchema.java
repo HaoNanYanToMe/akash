@@ -1,11 +1,14 @@
 package prism.akash.schema.system;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import prism.akash.container.BaseData;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.schema.BaseSchema;
 import prism.akash.tools.StringKit;
+import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.checked.AccessType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,8 +18,13 @@ import java.util.List;
  *       TODO : 系统·核心逻辑 （独立）
  * @author HaoNan Yan
  */
-@Service
+@Service("menuSchema")
+@Transactional(readOnly = true)
 public class menuSchema extends BaseSchema {
+
+    @Autowired
+    reloadMenuDataSchema reloadMenuDataSchema;
+
 
     /**
      * 获取系统默认菜单树
@@ -27,6 +35,7 @@ public class menuSchema extends BaseSchema {
      *              }
      * @return
      */
+    @Access({AccessType.SEL})
     public List<BaseData> getRootMenuTree(BaseData executeData) {
         List<BaseData> mTree = redisTool.getList("system:menu:root:tree", null, null);
         if (mTree.isEmpty() || mTree == null) {
@@ -94,6 +103,7 @@ public class menuSchema extends BaseSchema {
      *                    }
      * @return
      */
+    @Access({AccessType.SEL})
     public BaseData getMenuNodeData(BaseData executeData) {
         BaseData result = selectByOne(enCapsulationData("sys_menu", executeData));
         //如果获取值为空,则锁定当前数据1分钟,1分钟内禁止对数据库进行访问
@@ -125,6 +135,7 @@ public class menuSchema extends BaseSchema {
      * @param executeData Menu节点的数据对象
      * @return
      */
+    @Access({AccessType.ADD})
     @Transactional(readOnly = false)
     public String addMenuNode(BaseData executeData) {
         //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
@@ -145,6 +156,7 @@ public class menuSchema extends BaseSchema {
      * @param executeData Menu节点的待更新数据对象
      * @return
      */
+    @Access({AccessType.UPD})
     @Transactional(readOnly = false)
     public int updateMenuNode(BaseData executeData) {
         //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
@@ -154,6 +166,8 @@ public class menuSchema extends BaseSchema {
             redisCache(data.get("id") + "");
             //TODO 更新成功,重置redis缓存
             redisTool.delete("system:menu:root:tree");
+            //4.将指定权限缓存重置
+            reloadMenuDataSchema.reloadLoginData(executeData);
         }
         return result;
     }
@@ -165,6 +179,7 @@ public class menuSchema extends BaseSchema {
      *                    {id : xxxxxx}
      * @return
      */
+    @Access({AccessType.DEL})
     @Transactional(readOnly = false)
     public int deleteMenuNode(BaseData executeData) {
         int result = 0;
@@ -179,6 +194,8 @@ public class menuSchema extends BaseSchema {
                 redisTool.delete("system:menu:id:" + data.get("id"));
                 //TODO 删除成功,重置redis缓存
                 redisTool.delete("system:menu:root:tree");
+                //4.将指定权限缓存重置
+                reloadMenuDataSchema.reloadLoginData(executeData);
             }
         }
         return result;

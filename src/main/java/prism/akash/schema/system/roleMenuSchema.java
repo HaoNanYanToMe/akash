@@ -7,6 +7,8 @@ import prism.akash.container.BaseData;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.schema.BaseSchema;
 import prism.akash.tools.StringKit;
+import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.checked.AccessType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +30,9 @@ public class roleMenuSchema extends BaseSchema {
     @Autowired
     roleSchema roleSchema;
 
+    @Autowired
+    reloadMenuDataSchema reloadMenuDataSchema;
+
     /**
      * 菜单授权操作
      * TODO 通过菜单树进行点选
@@ -39,6 +44,7 @@ public class roleMenuSchema extends BaseSchema {
      *                    }
      * @return
      */
+    @Access({AccessType.ADD, AccessType.DEL})
     @Transactional(readOnly = false)
     public String bindRoleMenu(BaseData executeData) {
         String result = "-5";
@@ -74,6 +80,8 @@ public class roleMenuSchema extends BaseSchema {
                     //执行删除
                     result = deleteUserRole(menuData.get(0).getString("id"), rid) + "";
                 }
+                //4.将指定权限缓存重置
+                reloadMenuDataSchema.reloadLoginData(executeData);
             }
         }
         return result;
@@ -88,6 +96,7 @@ public class roleMenuSchema extends BaseSchema {
      *                    }
      * @return
      */
+    @Access({AccessType.SEL})
     public List<BaseData> getCurrentMenu(BaseData executeData) {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
         String roleId = data.getString("rid");
@@ -95,9 +104,8 @@ public class roleMenuSchema extends BaseSchema {
         List<BaseData> menuData = redisTool.getList("system:role_menu:id:" + roleId, null, null);
         if (menuData.size() == 0) {
             //未获取到缓存数据，请求数据
-            String menus = " select rm.id,rm.rid,rm.mid,rm.alias_name,rm.state,rm.order_number," +
-                    " m.name,m.note,m.pid,m.order_number,m.code,m.icon,m.path,m.component,m.is_parent," +
-                    " m.version,m.state" +
+            String menus = " select rm.*,m.name,m.note,m.pid,m.code,m.icon,m.path,m.component,m.is_parent," +
+                    " m.version,m.state," +
                     " from sys_rolemenu rm left join sys_menu m on m.id = rm.mid " +
                     " where m.state = 0 and rm.state = 0 " +
                     " and rm.rid =  '" + roleId + "' order by rm.order_number asc ";

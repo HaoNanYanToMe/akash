@@ -9,6 +9,8 @@ import prism.akash.api.BaseApi;
 import prism.akash.container.BaseData;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.tools.StringKit;
+import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.checked.AccessType;
 import prism.akash.tools.reids.RedisTool;
 
 import java.io.Serializable;
@@ -47,6 +49,7 @@ public class BaseSchema implements Serializable {
      *                    }
      * @return
      */
+    @Access({AccessType.SEL})
     public List<BaseData> select(BaseData executeData) {
         String id = executeData.getString("id");
         String data = executeData.getString("executeData");
@@ -67,6 +70,7 @@ public class BaseSchema implements Serializable {
      *                    }
      * @return
      */
+    @Access({AccessType.SEL})
     public Map<String, Object> selectPage(BaseData executeData) {
         String id = executeData.getString("id");
         String data = executeData.getString("executeData");
@@ -91,6 +95,7 @@ public class BaseSchema implements Serializable {
      *                    }
      * @return
      */
+    @Access({AccessType.SEL})
     public BaseData selectByOne(BaseData executeData) {
         String id = executeData.getString("id");
         String data = executeData.getString("executeData");
@@ -147,6 +152,7 @@ public class BaseSchema implements Serializable {
      * -2   : 数据表不存在
      * ""   : 失败
      */
+    @Access({AccessType.ADD})
     @Transactional(readOnly = false)
     public String insertData(BaseData executeData) {
         String id = executeData.getString("id");
@@ -179,6 +185,7 @@ public class BaseSchema implements Serializable {
      * -9   ：入参数据有误（缺少版本号 updVersion）
      * 0   ：失败（数据锁定:is_lock状态）
      */
+    @Access({AccessType.UPD})
     @Transactional(readOnly = false)
     public int updateData(BaseData executeData) {
         String id = executeData.getString("id");
@@ -216,6 +223,7 @@ public class BaseSchema implements Serializable {
      * -9   ：入参数据有误（缺少版本号 updVersion）
      *  0   ：失败（数据锁定:is_lock状态）
      */
+    @Access({AccessType.DEL})
     @Transactional(readOnly = false)
     public int deleteDataSoft(BaseData executeData) {
         String id = executeData.getString("id");
@@ -270,6 +278,7 @@ public class BaseSchema implements Serializable {
      * -1 - 参数不匹配（没有id)
      * -2 - 不存在表
      */
+    @Access({AccessType.DEL})
     @Transactional(readOnly = false)
     public int deleteData(BaseData executeData) {
         String id = executeData.getString("id");

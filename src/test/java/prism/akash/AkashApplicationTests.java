@@ -11,8 +11,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import prism.akash.container.BaseData;
 import prism.akash.controller.BaseController;
+import prism.akash.schema.BaseSchema;
 import prism.akash.tools.reids.RedisTool;
 
+import java.lang.reflect.Method;
 import java.util.Date;
 
 /**
@@ -57,14 +59,34 @@ public class AkashApplicationTests {
 
     @Test
     public void menu_Test(){
-        BaseData  execute = new BaseData();
-        execute.put("name","测试");
-        execute.put("code","test");
-        execute.put("is_parent",1);
-        execute.put("is_lock",0);
-        execute.put("pid",-1);
-        execute.put("order_number",0);
-        System.out.println(JSON.toJSONString(execute));
+        //通过反射代理的class对象
+        Class clazz;
+        //需要invoke执行调用的方法
+        Method m1;
+        //通过反射的schemaClassObject
+        clazz = BaseSchema.class;
+//        try {
+//            //执行方法
+//            m1 = clazz.getDeclaredMethod("deleteData", BaseData.class);
+//            execute ss = AnnotationUtils.findAnnotation(m1, execute.class);
+//            Object exe = AnnotationUtils.getValue(ss,"value");
+//            executeType[] e = (executeType[])exe;
+//            for (executeType a:e
+//                 ) {
+//                System.out.println(a.getExecuteType());
+//            }
+//        } catch (NoSuchMethodException e) {
+//        }
+
+
+//        BaseData  execute = new BaseData();
+//        execute.put("name","测试");
+//        execute.put("code","test");
+//        execute.put("is_parent",1);
+//        execute.put("is_lock",0);
+//        execute.put("pid",-1);
+//        execute.put("order_number",0);
+//        System.out.println(JSON.toJSONString(execute));
 //        System.out.println(baseController.executeUnify("menu","addMenuNode","",JSON.toJSONString(execute)));
     }
 

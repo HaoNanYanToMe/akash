@@ -1,13 +1,17 @@
 package prism.akash.schema.system;
 
 import com.alibaba.fastjson.JSON;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import prism.akash.container.BaseData;
+import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.schema.BaseSchema;
 import prism.akash.tools.StringKit;
+import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.checked.AccessType;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * 系统用户相关逻辑类
@@ -26,6 +30,7 @@ public class userSchema extends BaseSchema {
      * @param executeData 待新增的用户基础信息数据
      * @return
      */
+    @Access({AccessType.ADD})
     @Transactional(readOnly = false)
     public String addUserInfo(BaseData executeData) {
         //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
@@ -40,6 +45,7 @@ public class userSchema extends BaseSchema {
      * @param executeData 待更新的用户基础信息数据
      * @return
      */
+    @Access({AccessType.UPD})
     @Transactional(readOnly = false)
     public int updateUserInfo(BaseData executeData) {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
@@ -62,6 +68,7 @@ public class userSchema extends BaseSchema {
      *                    {id : xxxxxx}
      * @return
      */
+    @Access({AccessType.DEL})
     @Transactional(readOnly = false)
     public int deleteSoftUser(BaseData executeData) {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
@@ -84,6 +91,7 @@ public class userSchema extends BaseSchema {
      *                    {id : xxxxxx}
      * @return
      */
+    @Access({AccessType.DEL})
     @Transactional(readOnly = false)
     public int deleteUser(BaseData executeData) {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
@@ -97,12 +105,48 @@ public class userSchema extends BaseSchema {
 
 
     /**
+     * 在系统用户登陆时获取用户信息
+     *
+     * @param executeData 用户请求登录的对象
+     *                    {
+     *                    email :  用户的邮箱
+     *                    ……
+     *                    TODO : 示例为使用邮箱作为唯一账号进行登录，使用时请根据实际情况修改本方法即可
+     *                    }
+     * @return
+     */
+    @Access({AccessType.LOGIN, AccessType.SEL})
+    public BaseData selectUserLogin(BaseData executeData) {
+        //1.声明返回值
+        BaseData user = null;
+        //2.执行查询
+        BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
+        List<BaseData> userList = baseApi.selectBase(new sqlEngine()
+                .setSelect(" select * from sys_user where state = 0 and email = '" + StringEscapeUtils.escapeSql(data.get("email") + "") + "'"));
+        if (userList.size() > 0) {
+            //TODO 无论根据条件查询出了多少条数据，始终获取第1条
+            user = userList.get(0);
+        }
+        //3.载入缓存
+        if (user != null) {
+            //将用户数存入Redis
+            redisTool.set("system:user:id:" + user.get("id"), JSON.toJSONString(user), -1);
+        }else{
+            //空数据1分钟内不允许多次访问数据库进行查询
+            redisTool.set("system:user:id:" + user.get("id"), "{}", 60000);
+        }
+        return user;
+    }
+
+
+    /**
      * 获取用户基础信息
      *
      * @param executeData 待获取的用户
      *                    {id : xxxxxx}
      * @return
      */
+    @Access({AccessType.SEL})
     public BaseData selectUser(BaseData executeData) {
         //1.声明返回值
         BaseData user = null;

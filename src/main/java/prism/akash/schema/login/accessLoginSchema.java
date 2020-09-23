@@ -5,10 +5,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import prism.akash.container.BaseData;
 import prism.akash.schema.BaseSchema;
+import prism.akash.schema.system.menuDataSchema;
 import prism.akash.schema.system.roleMenuSchema;
 import prism.akash.schema.system.userRoleSchema;
 import prism.akash.schema.system.userSchema;
 import prism.akash.tools.StringKit;
+import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.checked.AccessType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,13 +41,17 @@ public class accessLoginSchema extends BaseSchema {
     @Autowired
     roleMenuSchema roleMenuSchema;
 
+    @Autowired
+    menuDataSchema menuDataSchema;
+
+
     /**
      * 用户鉴权登陆
      *
      * @param executeData 用户登陆时设置的信息（通过统一登录鉴权后的数据）
      *                    {
-     *                    *id : 用户在系统sys_user表中的id
-     *                    rid : 用户指定登陆时使用的权限
+     *                    id   :   用户在系统sys_user表中的id
+     *                    rid  :   用户指定登陆时使用的权限
      *                    }
      * @return {
      * isLogin     : 登陆状态，true/false
@@ -54,6 +61,7 @@ public class accessLoginSchema extends BaseSchema {
      * menu        : 当前权限可访问的菜单
      * }
      */
+    @Access({AccessType.SEL, AccessType.LOGIN})
     public Map<String, Object> accessLogin(BaseData executeData) {
         Map<String, Object> result = new ConcurrentHashMap<>();
         //0.解析proxy的executeData的数据
@@ -108,12 +116,46 @@ public class accessLoginSchema extends BaseSchema {
             //获取可访问的菜单数据
             BaseData menuRole = new BaseData();
             menuRole.put("rid", rid);
-            result.put("menu", menuTree(roleMenuSchema.getCurrentMenu(pottingData("", menuRole)),"-1"));
+            //获取菜单树
+            List<BaseData> menuList = roleMenuSchema.getCurrentMenu(pottingData("", menuRole));
+            result.put("menu", menuTree(menuList, "-1"));
             result.put("loginTips", "授权访问成功");
+            //将当前用户权限可访问的数据集合载入缓存
+            getLoginAccess(menuList, rid);
         }
         result.put("isLogin", isLogin);
         return result;
     }
+
+    /**
+     * 根据菜单树循环获取可访问数据（表 / Schema原生逻辑对象）集合
+     *
+     * @param menuList     当前权限可使用菜单列表
+     * @param rid          当前使用的权限id
+     * @return
+     */
+    private List<BaseData> getLoginAccess(List<BaseData> menuList, String rid) {
+        List<BaseData> roleData = redisTool.getList("login:role_data:id:" + rid, null, null);
+        if (roleData.size() == 0) {
+            for (BaseData menu : menuList) {
+                List<BaseData> menuData = menuDataSchema.getCurrentAccessData(pottingData("", menu));
+                if (menuData.size() > 0) {
+                    for (BaseData m : menuData) {
+                        m.put("page_role", menu.get("page_role"));
+                        m.put("page_normal_role", menu.get("page_normal_role"));
+                        roleData.add(m);
+                    }
+
+                }
+            }
+            //TODO 为方便后期同权限用户使用,首次加载将同步至缓存
+            //判断roleData是否有数据，如果没有，则置空，且60s内无法再次获取
+            boolean dataExist = roleData.size() == 0;
+            redisTool.set("login:role_data:id:" + rid, dataExist ? new ArrayList<>() : roleData, dataExist ? -1 : 60000);
+        }
+        return roleData;
+    }
+
 
     /**
      * 获取可供前台使用的菜单树
@@ -130,11 +172,10 @@ public class accessLoginSchema extends BaseSchema {
         for (BaseData menu : filterData) {
             BaseData mTree = new BaseData();
             mTree.put("id", menu.get("mid"));
+            mTree.put("icon", menu.get("icon"));
+            mTree.put("path", menu.get("path"));
+            mTree.put("name", menu.get("code"));
             mTree.put("title", menu.get("name"));
-            //默认节点不展开
-            mTree.put("expand", false);
-            mTree.put("version", menu.get("version"));
-            mTree.put("is_lock", menu.getInter("state") == 0 ? false : true);
             //判断当前节点是否为父节点
             //TODO  0-否 / 1-是
             if (menu.getInter("is_parent") == 1){

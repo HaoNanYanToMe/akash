@@ -7,6 +7,8 @@ import prism.akash.container.BaseData;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.schema.BaseSchema;
 import prism.akash.tools.StringKit;
+import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.checked.AccessType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +28,9 @@ public class menuDataSchema extends BaseSchema {
     @Autowired
     menuSchema menuSchema;
 
+    @Autowired
+    reloadMenuDataSchema reloadMenuDataSchema;
+
     /**
      * 授权菜单可使用（访问）的数据表 / 逻辑类
      * TODO 使用穿梭框进行授权操作，一对多
@@ -37,6 +42,7 @@ public class menuDataSchema extends BaseSchema {
      *                    }
      * @return
      */
+    @Access({AccessType.ADD, AccessType.DEL})
     @Transactional(readOnly = false)
     public String bindMenuData(BaseData executeData) {
         String result = "UR4";
@@ -70,6 +76,8 @@ public class menuDataSchema extends BaseSchema {
                 }
                 //3.执行完成，将数据载入缓存
                 getCurrentAccessData(executeData);
+                //4.将指定权限缓存重置
+                reloadMenuDataSchema.reloadLoginData(executeData);
             }
         }
         return result;
@@ -83,6 +91,7 @@ public class menuDataSchema extends BaseSchema {
      *                    }
      * @return
      */
+    @Access({AccessType.SEL})
     public List<BaseData> getCurrentAccessData(BaseData executeData) {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
         String menuId = data.getString("mid");

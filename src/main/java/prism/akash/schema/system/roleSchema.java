@@ -1,12 +1,15 @@
 package prism.akash.schema.system;
 
 import com.alibaba.fastjson.JSON;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import prism.akash.container.BaseData;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.schema.BaseSchema;
 import prism.akash.tools.StringKit;
+import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.checked.AccessType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +22,9 @@ import java.util.List;
 @Service
 public class roleSchema extends BaseSchema {
 
+    @Autowired
+    reloadMenuDataSchema reloadMenuDataSchema;
+
     /**
      * 获取系统默认权限树
      *
@@ -28,6 +34,7 @@ public class roleSchema extends BaseSchema {
      *              }
      * @return
      */
+    @Access({AccessType.SEL})
     public List<BaseData> getRootRoleTree(BaseData executeData) {
         List<BaseData> mTree = redisTool.getList("system:role:root:tree",null,null);
         if (mTree.isEmpty() || mTree == null) {
@@ -94,6 +101,7 @@ public class roleSchema extends BaseSchema {
      *                    }
      * @return
      */
+    @Access({AccessType.SEL})
     public BaseData getRoleNodeData(BaseData executeData) {
         BaseData resultData = new BaseData();
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
@@ -127,6 +135,7 @@ public class roleSchema extends BaseSchema {
      * @param executeData 权限节点的数据对象
      * @return
      */
+    @Access({AccessType.ADD})
     @Transactional(readOnly = false)
     public String addRoleNode(BaseData executeData) {
         //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
@@ -147,6 +156,7 @@ public class roleSchema extends BaseSchema {
      * @param executeData 权限节点的待更新数据对象
      * @return
      */
+    @Access({AccessType.UPD})
     @Transactional(readOnly = false)
     public int updateRoleNode(BaseData executeData) {
         //为了保证数据的强一致性，数据表ID将使用getTableIdByCode方法进行指向性获取
@@ -156,6 +166,8 @@ public class roleSchema extends BaseSchema {
             redisCache(data.get("id") + "");
             //TODO 更新成功,重置redis缓存
             redisTool.delete("system:role:root:tree");
+            //4.将指定权限缓存重置
+            reloadMenuDataSchema.reloadLoginData(executeData);
         }
         return result;
     }
@@ -167,6 +179,7 @@ public class roleSchema extends BaseSchema {
      *                    {id : xxxxxx}
      * @return
      */
+    @Access({AccessType.DEL})
     @Transactional(readOnly = false)
     public int deleteRoleNode(BaseData executeData) {
         int result = 0;
@@ -181,6 +194,8 @@ public class roleSchema extends BaseSchema {
                 redisTool.delete("system:role:id:" + data.get("id"));
                 //TODO 删除成功,重置redis缓存
                 redisTool.delete("system:role:root:tree");
+                //4.将指定权限缓存重置
+                reloadMenuDataSchema.reloadLoginData(executeData);
             }
         }
         return result;
