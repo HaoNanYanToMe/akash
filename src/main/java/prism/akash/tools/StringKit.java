@@ -145,6 +145,9 @@ public class StringKit {
                 case "UR4":
                     result = "操作失败：数据源未定义";
                     break;
+                case "NAC":
+                    result = "操作失败：无访问权限";
+                    break;
                 default:
                     break;
             }

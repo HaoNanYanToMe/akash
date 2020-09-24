@@ -36,6 +36,7 @@ public class menuDataSchema extends BaseSchema {
      *                    {
      *                    *mid :   菜单id                                         TODO 必填字段
      *                    *data:   数据表 / 逻辑id , 支持多个，多个之间用,隔开即可    TODO 必填字段
+     *                    *type:   数据类型  0-数据表 / 1-sql引擎 / 2-逻辑引擎       TODO 必填字段（默认为0）
      *                    }
      * @return
      */
@@ -47,8 +48,9 @@ public class menuDataSchema extends BaseSchema {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
         //TODO 数据强校验
         //进行授权时,mid及data不能为null
-        if (data.get("mid") != null && data.get("data") != null) {
+        if (data.get("mid") != null && data.get("data") != null && data.get("type") != null) {
             String mid = data.getString("mid");
+            String type = data.getString("type");
             String dataList = data.getString("data");
             data.put("id", data.get("mid"));
             BaseData menu = menuSchema.getMenuNodeData(pottingData("", data));
@@ -59,11 +61,14 @@ public class menuDataSchema extends BaseSchema {
                 removeBind(mid);
                 //从redis获取核心数据表的集合对象
                 List<BaseData> tableList = getTableList();
+                //从redis获取核心引擎表的集合对象
+                List<BaseData> engineList = getEngineList();
                 //2.解析dataList数据，循环执行新增
                 int i = 0;
                 for (String d : dataList.split(",")) {
                     if (!d.isEmpty() && d != null) {
-                        String re = addMenuData(mid, d, i, tableList);
+                        //TODO 逻辑引擎暂未启用 （2）
+                        String re = type.equals("1") ? addMenuDataEngine(mid, d, i, engineList) : addMenuData(mid, d, i, tableList);
                         //当新增返回值为32位时即为新增成功
                         if (re.length() == 32) {
                             i++;
@@ -95,11 +100,22 @@ public class menuDataSchema extends BaseSchema {
         //从redis里获取当前菜单的数据缓存
         List<BaseData> menuData = redisTool.getList("system:menu_data:id:" + menuId, null, null);
         if (menuData.size() == 0) {
-            //未获取到缓存数据，请求数据
+            //未获取到数据表及引擎缓存数据，请求数据
             String menu = " select md.*,t.name,t.code from sys_menudata md left join cr_tables t on t.id = md.tid " +
-                    "where md.state = 0 and md.mid = '" + menuId + "' and t.state = 0" +
+                    "where md.state = 0 and md.mid = '" + menuId + "' and t.state = 0 and md.type = 0" +
                     " order by md.order_number asc ";
             menuData = baseApi.selectBase(new sqlEngine().setSelect(menu));
+
+            String engine = " select md.*,e.name,e.code,e.engineType from sys_menudata md left join cr_engine e on e.id = md.tid " +
+                    "where md.state = 0 and md.mid = '" + menuId + "' and e.state = 0 and md.type = 1" +
+                    " order by md.order_number asc ";
+
+            List<BaseData> engineList = baseApi.selectBase(new sqlEngine().setSelect(engine));
+            if (engineList.size() > 0) {
+                //将引擎类型数据加入集合对象
+                menuData.addAll(engineList);
+            }
+
             if (menuData.size() > 0) {
                 redisTool.set("system:menu_data:id:" + menuId, menuData, -1);
             }
@@ -127,6 +143,40 @@ public class menuDataSchema extends BaseSchema {
                 BaseData executeData = new BaseData();
                 executeData.put("mid", menuId);
                 executeData.put("tid", dataId);
+                executeData.put("order_number", order_number);
+                executeData.put("type", 0);
+
+                result = insertData(pottingData("sys_menudata", executeData));
+                if (result.length() == 32) {
+                    //新增成功后,将redis缓存重置
+                    redisTool.delete("system:menu_data:id:" + menuId);
+                }
+            }
+        }
+        return result;
+    }
+
+
+    /**
+     * 内部方法：新增菜单与引擎间的绑定关系
+     *
+     * @param menuId       菜单id
+     * @param dataId       引擎id
+     * @param order_number 序列号
+     * @param engineList    已有引擎集合对象
+     * @return
+     */
+    @Transactional(readOnly = false)
+    protected String addMenuDataEngine(String menuId, String dataId, int order_number, List<BaseData> engineList) {
+        String result = "";
+        if (engineList.size() > 0) {
+            //TODO 校验引擎对象是否存在
+            int exist = engineList.stream().filter(t -> t.get("id").equals(dataId)).collect(Collectors.toList()).size();
+            if (exist > 0) {
+                BaseData executeData = new BaseData();
+                executeData.put("mid", menuId);
+                executeData.put("tid", dataId);
+                executeData.put("type", 1);
                 executeData.put("order_number", order_number);
 
                 result = insertData(pottingData("sys_menudata", executeData));

@@ -100,7 +100,6 @@ public class BaseDataExtends implements Serializable {
                             .joinBuild("cr_engine", "en", joinType.L).joinColunm("e", "eid", "id").joinFin()
                             .queryBuild(queryType.and, "e", "eid", conditionType.EQ, null,"eid")
                             .queryBuild(queryType.and, "en", "@state", conditionType.EQ, null, "0")
-                            .queryBuild(queryType.and, "en", "@engineType", conditionType.EQ, null, "0")
                             .queryBuild(queryType.and, "e", "@state", conditionType.EQ, null, "0")
                             .dataSort("e", "sorts", sortType.ASC)
                             .selectFin(JSON.toJSONString(sel)));

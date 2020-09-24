@@ -294,6 +294,22 @@ public class BaseSchema implements Serializable {
      *
      * @return
      */
+    protected List<BaseData> getEngineList() {
+        //通过redis获取缓存数据
+        List<BaseData> tableList = redisTool.getList("core:engine:list", null, null);
+        if (tableList.size() == 0) {
+            tableList = baseApi.selectBase(new sqlEngine().setSelect(" select id,code,name,engineType from cr_engine where state = 0 "));
+            redisTool.set("core:engine:list", tableList, -1);
+        }
+        return tableList;
+    }
+
+
+    /**
+     * 内部方法：用于获取core_tables的缓存数据
+     *
+     * @return
+     */
     protected List<BaseData> getTableList() {
         //通过redis获取缓存数据
         List<BaseData> tableList = redisTool.getList("core:table:list", null, null);

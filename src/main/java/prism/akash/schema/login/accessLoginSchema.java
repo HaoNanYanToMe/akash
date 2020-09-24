@@ -149,8 +149,8 @@ public class accessLoginSchema extends BaseSchema {
             }
             //TODO 为方便后期同权限用户使用,首次加载将同步至缓存
             //判断roleData是否有数据，如果没有，则置空，且60s内无法再次获取
-            boolean dataExist = roleData.size() == 0;
-            redisTool.set("login:role_data:id:" + rid, dataExist ? new ArrayList<>() : roleData, dataExist ? -1 : 60000);
+            boolean dataExist = roleData.size() > 0;
+            redisTool.set("login:role_data:id:" + rid, dataExist ? roleData : new ArrayList<>() , dataExist ? -1 : 60000);
         }
         return roleData;
     }
