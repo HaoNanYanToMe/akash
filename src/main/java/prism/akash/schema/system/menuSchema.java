@@ -205,7 +205,9 @@ public class menuSchema extends BaseSchema {
      * 删除菜单节点
      *
      * @param executeData Menu节点的待删除的对象
-     *                    {id : xxxxxx}
+     *                    {
+     *                    id : xxxxxx
+     *                    }
      * @return
      */
     @Access({AccessType.DEL})

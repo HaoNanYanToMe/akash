@@ -52,6 +52,6 @@ spring:
 akashConfig:
   defaultFilePath: d:/
   access:
-    enable: true  # 是否开启强制鉴权,测试时建议关闭本功能 [false]  默认开启 [true]
+    enable: true  # 是否开启强制鉴权,测试时建议关闭本功能 [false]  默认开启 [true]。
 
 
