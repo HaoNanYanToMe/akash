@@ -6,9 +6,8 @@ import org.springframework.transaction.annotation.Transactional;
 import prism.akash.container.BaseData;
 import prism.akash.schema.BaseSchema;
 import prism.akash.schema.login.accessLoginSchema;
-import prism.akash.tools.StringKit;
 
-import java.util.Map;
+import java.util.List;
 
 
 /**
@@ -17,31 +16,30 @@ import java.util.Map;
  *
  * @author HaoNan Yan
  */
-@Service("menuSchema")
+@Service("reloadMenuDataSchema")
 @Transactional(readOnly = true)
 public class reloadMenuDataSchema extends BaseSchema {
 
     @Autowired
     accessLoginSchema accessLoginSchema;
 
+    @Autowired
+    roleMenuSchema roleMenuSchema;
+
     /**
      * 权限重载
      *
-     * @param executeData {
-     *                    *session_uid:登录后用户的id
-     *                    *session_rid:登录后用户的role_id
-     *                    }
+     * @param roleId  权限ID
      * @return 重载结果 true/false
      */
-    public boolean reloadLoginData(BaseData executeData) {
-        BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
+    public boolean reloadLoginData(String roleId) {
         //1.清除缓存
-        redisTool.delete("login:role_data:id:" + data.getString("session_rid"));
+        redisTool.delete("login:role_data:id:" + roleId);
         //2.重载缓存
         BaseData reload = new BaseData();
-        reload.put("id", data.getString("session_uid"));
-        reload.put("rid", data.getString("session_rid"));
-        Map<String, Object> result = accessLoginSchema.accessLogin(pottingData("", reload));
-        return (boolean) result.get("isLogin");
+        reload.put("rid", roleId);
+        //3.根据权限id获取菜单信息
+        List<BaseData> menuList = roleMenuSchema.getCurrentMenu(pottingData("", reload));
+        return accessLoginSchema.getLoginAccess(menuList,roleId).size() > 0;
     }
 }

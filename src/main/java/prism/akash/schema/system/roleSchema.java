@@ -167,7 +167,7 @@ public class roleSchema extends BaseSchema {
             //TODO 更新成功,重置redis缓存
             redisTool.delete("system:role:root:tree");
             //4.将指定权限缓存重置
-            reloadMenuDataSchema.reloadLoginData(executeData);
+            reloadMenuDataSchema.reloadLoginData(data.get("id") + "");
         }
         return result;
     }
@@ -195,7 +195,7 @@ public class roleSchema extends BaseSchema {
                 //TODO 删除成功,重置redis缓存
                 redisTool.delete("system:role:root:tree");
                 //4.将指定权限缓存重置
-                reloadMenuDataSchema.reloadLoginData(executeData);
+                reloadMenuDataSchema.reloadLoginData(data.get("id") + "");
             }
         }
         return result;

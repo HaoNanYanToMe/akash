@@ -134,7 +134,7 @@ public class accessLoginSchema extends BaseSchema {
      * @param rid          当前使用的权限id
      * @return
      */
-    private List<BaseData> getLoginAccess(List<BaseData> menuList, String rid) {
+    public List<BaseData> getLoginAccess(List<BaseData> menuList, String rid) {
         List<BaseData> roleData = redisTool.getList("login:role_data:id:" + rid, null, null);
         if (roleData.size() == 0) {
             for (BaseData menu : menuList) {
@@ -145,7 +145,6 @@ public class accessLoginSchema extends BaseSchema {
                         m.put("page_normal_role", menu.get("page_normal_role"));
                         roleData.add(m);
                     }
-
                 }
             }
             //TODO 为方便后期同权限用户使用,首次加载将同步至缓存

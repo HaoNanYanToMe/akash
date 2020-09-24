@@ -81,7 +81,7 @@ public class roleMenuSchema extends BaseSchema {
                     result = deleteUserRole(menuData.get(0).getString("id"), rid) + "";
                 }
                 //4.将指定权限缓存重置
-                reloadMenuDataSchema.reloadLoginData(executeData);
+                reloadMenuDataSchema.reloadLoginData(rid);
             }
         }
         return result;
@@ -105,7 +105,7 @@ public class roleMenuSchema extends BaseSchema {
         if (menuData.size() == 0) {
             //未获取到缓存数据，请求数据
             String menus = " select rm.*,m.name,m.note,m.pid,m.code,m.icon,m.path,m.component,m.is_parent," +
-                    " m.version,m.state," +
+                    " m.version,m.state" +
                     " from sys_rolemenu rm left join sys_menu m on m.id = rm.mid " +
                     " where m.state = 0 and rm.state = 0 " +
                     " and rm.rid =  '" + roleId + "' order by rm.order_number asc ";
@@ -148,8 +148,12 @@ public class roleMenuSchema extends BaseSchema {
         executeData.put("mid", menuId);
         executeData.put("rid", roleId);
         executeData.put("order_number", order_number);
-
-        return insertData(pottingData("sys_rolemenu", executeData));
+        String result = insertData(pottingData("sys_rolemenu", executeData));
+        if (result.length() == 32) {
+            //新增成功后,将redis缓存重置
+            redisTool.delete("system:role_menu:id:" + roleId);
+        }
+        return result;
     }
 
 

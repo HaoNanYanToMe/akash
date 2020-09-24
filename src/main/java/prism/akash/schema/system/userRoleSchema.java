@@ -139,8 +139,12 @@ public class userRoleSchema extends BaseSchema {
         executeData.put("uid", userId);
         executeData.put("rid", roleId);
         executeData.put("order_number", order_number);
-
-        return insertData(pottingData("sys_userrole", executeData));
+        String result = insertData(pottingData("sys_userrole", executeData));;
+        if (result.length() == 32) {
+            //新增成功后,将redis缓存重置
+            redisTool.delete("system:user_role:id:" + userId);
+        }
+        return result;
     }
 
     /**

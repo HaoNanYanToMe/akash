@@ -166,11 +166,40 @@ public class menuSchema extends BaseSchema {
             redisCache(data.get("id") + "");
             //TODO 更新成功,重置redis缓存
             redisTool.delete("system:menu:root:tree");
-            //4.将指定权限缓存重置
-            reloadMenuDataSchema.reloadLoginData(executeData);
+            reloadLoginMenu(data.get("id") + "");
         }
         return result;
     }
+
+    /**
+     * 内部方法：用于菜单相关操作，对关联权限进行重置
+     * TODO 仅Schema可以使用，不对外开放
+     * @param menuid    菜单id
+     */
+    public void reloadLoginMenu(String menuid) {
+        List<BaseData> menuData = getRoleMenu(menuid);
+        for (BaseData m : menuData) {
+            //TODO 将指定权限缓存重置
+            if (m.get("rid") != null) {
+                if (!m.getString("rid").isEmpty()) {
+                    reloadMenuDataSchema.reloadLoginData(m.getString("rid"));
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 内部方法:获取已绑定当前已选菜单的权限列表
+     *
+     * @param menuid 菜单id
+     * @return
+     */
+    private List<BaseData> getRoleMenu(String menuid) {
+        String menus = " select rm.rid from sys_rolemenu rm left join sys_menu m on m.id = rm.mid where rm.mid = '" + menuid + "' and rm.state = 0 and m.state = 0";
+        return baseApi.selectBase(new sqlEngine().setSelect(menus));
+    }
+
 
     /**
      * 删除菜单节点
@@ -195,7 +224,7 @@ public class menuSchema extends BaseSchema {
                 //TODO 删除成功,重置redis缓存
                 redisTool.delete("system:menu:root:tree");
                 //4.将指定权限缓存重置
-                reloadMenuDataSchema.reloadLoginData(executeData);
+                reloadLoginMenu(data.get("id") + "");
             }
         }
         return result;

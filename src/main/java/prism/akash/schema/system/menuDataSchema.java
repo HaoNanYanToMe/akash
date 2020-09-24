@@ -28,9 +28,6 @@ public class menuDataSchema extends BaseSchema {
     @Autowired
     menuSchema menuSchema;
 
-    @Autowired
-    reloadMenuDataSchema reloadMenuDataSchema;
-
     /**
      * 授权菜单可使用（访问）的数据表 / 逻辑类
      * TODO 使用穿梭框进行授权操作，一对多
@@ -77,7 +74,7 @@ public class menuDataSchema extends BaseSchema {
                 //3.执行完成，将数据载入缓存
                 getCurrentAccessData(executeData);
                 //4.将指定权限缓存重置
-                reloadMenuDataSchema.reloadLoginData(executeData);
+                menuSchema.reloadLoginMenu(mid);
             }
         }
         return result;
@@ -133,6 +130,10 @@ public class menuDataSchema extends BaseSchema {
                 executeData.put("order_number", order_number);
 
                 result = insertData(pottingData("sys_menudata", executeData));
+                if (result.length() == 32) {
+                    //新增成功后,将redis缓存重置
+                    redisTool.delete("system:menu_data:id:" + menuId);
+                }
             }
         }
         return result;
