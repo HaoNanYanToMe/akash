@@ -290,7 +290,7 @@ public class BaseSchema implements Serializable {
 
 
     /**
-     * 内部方法：用于获取core_tables的缓存数据
+     * 内部方法：用于获取core_engine的缓存数据
      *
      * @return
      */

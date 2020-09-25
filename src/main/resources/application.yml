@@ -50,8 +50,13 @@ spring:
       max-request-size: 100MB
 
 akashConfig:
-  defaultFilePath: d:/
+  defaultFilePath: d:/  # 系统默认的文件上传地址
   access:
-    enable: true  # 是否开启强制鉴权,测试时建议关闭本功能 [false]  默认开启 [true]。
+    enable: true  # 强制鉴权控制,测试时请根据需要打开[true]或关闭[false]本项
+  oauth:
+    secureSSL: false # SSL加密链接访问控制,非https项目请使用false
+    cross:
+      enable: true  # 跨域访问控制
+      domain:       # 指定跨域域名
 
 

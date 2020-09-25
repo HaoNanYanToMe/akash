@@ -66,7 +66,8 @@ public class BaseProxy implements Serializable {
             //TODO 对请求进行鉴权
             //如果accessEnable为true则执行鉴权，为false时则默认跳过鉴权步骤
             boolean accessResult = accessEnable ?
-                    checkAccess(schemaName, id, getMethodPermission(schemaName, methodName, m1), "0", "074e19ca81b944629773fff101ea759e") :
+                    checkAccess(schemaName, id, getMethodPermission(schemaName, methodName, m1),
+                            "0", "074e19ca81b944629773fff101ea759e") :
                     true;
             logger.info(schemaName + " - " + methodName + " - 鉴权结果:" + accessResult);
             //只有鉴权通过才允许执行访问

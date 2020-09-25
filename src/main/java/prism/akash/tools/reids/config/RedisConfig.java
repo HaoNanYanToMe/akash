@@ -12,14 +12,15 @@ import prism.akash.tools.fastJson.FastJson2JsonRedisSerializer;
 
 /**
  * Redis序列化及反序列化
+ *
  * @author HaoNan.Yan
  */
 @Configuration
 public class RedisConfig {
 
     @Bean
-    public RedisTemplate<Object,Object> redisTemplate(RedisConnectionFactory redisConnectionFactory){
-        RedisTemplate<Object,Object> template = new RedisTemplate<>();
+    public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
+        RedisTemplate<Object, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(redisConnectionFactory);
         FastJson2JsonRedisSerializer fastJson2JsonRedisSerializer = new FastJson2JsonRedisSerializer(Object.class);
         ObjectMapper objectMapper = new ObjectMapper();
