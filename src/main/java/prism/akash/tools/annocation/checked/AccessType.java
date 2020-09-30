@@ -10,7 +10,8 @@ public enum AccessType {
     ADD("ADD"),//新增
     DEL("DEL"),//删除
     DOWN("DOWN"),//下载
-    UPLOAD("UPLOAD");//上传
+    UPLOAD("UPLOAD"),//上传
+    ADMIN("ADMIN");//仅超级管理员可以访问
 
     private String value;
 

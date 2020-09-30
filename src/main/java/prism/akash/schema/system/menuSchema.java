@@ -8,6 +8,7 @@ import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.schema.BaseSchema;
 import prism.akash.tools.StringKit;
 import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.Schema;
 import prism.akash.tools.annocation.checked.AccessType;
 
 import java.util.ArrayList;
@@ -18,8 +19,9 @@ import java.util.List;
  *       TODO : 系统·核心逻辑 （独立）
  * @author HaoNan Yan
  */
-@Service("menuSchema")
+@Service
 @Transactional(readOnly = true)
+@Schema(code = "menu", name = "系统菜单")
 public class menuSchema extends BaseSchema {
 
     @Autowired

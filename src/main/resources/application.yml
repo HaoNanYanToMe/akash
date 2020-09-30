@@ -51,8 +51,13 @@ spring:
 
 akashConfig:
   defaultFilePath: d:/  # 系统默认的文件上传地址
+  init:
+    enable: true    # 基础数据初始化 「关闭后系统启动时将不再自动对「数据库库表、字段」及「@schema逻辑层」进行数据同步」
+    baseInit: false # 是否同步系统底层数据表 默认为「false」
+    history:  false # 是否保存历史字段及表信息 默认为「false」 设置为「true」时，同步数据不会对原有数据进行删除「状态变更」
+    tables:         # 在init.enable为「true」时,可以指定需要同步的数据表「多个间以,隔开」,为空视为同步指定数据库所有数据表
   access:
-    enable: true  # 强制鉴权控制,测试时请根据需要打开[true]或关闭[false]本项
+    enable: false  # 强制鉴权控制,测试时请根据需要打开[true]或关闭[false]本项
   oauth:
     secureSSL: false # SSL加密链接访问控制,非https项目请使用false
     cross:

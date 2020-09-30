@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import prism.akash.container.BaseData;
 import prism.akash.schema.BaseSchema;
 import prism.akash.schema.login.accessLoginSchema;
+import prism.akash.tools.annocation.Schema;
 
 import java.util.List;
 
@@ -16,8 +17,9 @@ import java.util.List;
  *
  * @author HaoNan Yan
  */
-@Service("reloadMenuDataSchema")
+@Service
 @Transactional(readOnly = true)
+@Schema(code = "reloadMenuData", name = "系统·权限重载" ,init = false)
 public class reloadMenuDataSchema extends BaseSchema {
 
     @Autowired

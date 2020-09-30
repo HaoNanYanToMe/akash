@@ -32,7 +32,7 @@ public class AsyncExecutor {
 //    @Scheduled(cron = "50 49 16 * * ?")
     private void configureTasks() throws Exception{
         logger.info("定时任务：核心数据同步Loading……"+new Date());
-        logger.info("定时任务执行结果："+JSON.toJSONString(asyncInitData.executor()));
+//        logger.info("定时任务执行结果："+JSON.toJSONString(asyncInitData.executor()));
         logger.info("定时任务结束:"+new Date());
     }
 

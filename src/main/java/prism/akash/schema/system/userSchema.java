@@ -9,6 +9,7 @@ import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.schema.BaseSchema;
 import prism.akash.tools.StringKit;
 import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.Schema;
 import prism.akash.tools.annocation.checked.AccessType;
 
 import java.util.List;
@@ -18,8 +19,9 @@ import java.util.List;
  *       TODO : 系统·核心逻辑 （独立）
  * @author HaoNan Yan
  */
-@Service("userSchema")
+@Service
 @Transactional(readOnly = true)
+@Schema(code = "user", name = "系统用户")
 public class userSchema extends BaseSchema {
 
 

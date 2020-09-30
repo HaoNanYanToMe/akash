@@ -11,6 +11,7 @@ import prism.akash.schema.system.userRoleSchema;
 import prism.akash.schema.system.userSchema;
 import prism.akash.tools.StringKit;
 import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.Schema;
 import prism.akash.tools.annocation.checked.AccessType;
 
 import java.util.ArrayList;
@@ -28,8 +29,9 @@ import java.util.stream.Collectors;
  *
  * @author HaoNan Yan
  */
-@Service("accessLoginSchema")
+@Service
 @Transactional(readOnly = true)
+@Schema(code = "accessLogin", name = "系统用户鉴权「登陆」" , init = false)
 public class accessLoginSchema extends BaseSchema {
 
     @Autowired

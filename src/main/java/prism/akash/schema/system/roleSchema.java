@@ -9,6 +9,7 @@ import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.schema.BaseSchema;
 import prism.akash.tools.StringKit;
 import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.Schema;
 import prism.akash.tools.annocation.checked.AccessType;
 
 import java.util.ArrayList;
@@ -20,6 +21,8 @@ import java.util.List;
  * @author HaoNan Yan
  */
 @Service
+@Transactional(readOnly = true)
+@Schema(code = "role", name = "系统权限")
 public class roleSchema extends BaseSchema {
 
     @Autowired

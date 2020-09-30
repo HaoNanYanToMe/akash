@@ -56,11 +56,12 @@ public class BaseData extends HashMap implements Map{
     }
 
     public Integer getInter(Object key){
-        return Integer.parseInt(get(key)+"");
+        return get(key) == null ? 0 : Integer.parseInt(get(key)+"");
     }
 
+
     public String getString(Object key) {
-        return (String)get(key);
+        return get(key) == null ? "" : (String) get(key);
     }
 
     @SuppressWarnings("unchecked")

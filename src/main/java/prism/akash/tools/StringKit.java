@@ -89,7 +89,7 @@ public class StringKit {
         boolean existBase = data instanceof String || data instanceof Integer;
         Map<String, Object> result = new HashMap<>();
         result.put("result", !existBase ? !content.equals("null") ? "1" : "-8" : content.length() == 32 ? "1" : data);
-        result.put("resultData", !existBase ? !content.equals("null") ? data : "操作失败：待操作数据不存在" : formateType(content));
+        result.put("resultData", !existBase ? !content.equals("null") ? data : "操作失败：待操作数据不存在或数据CODE已存在" : formateType(content));
         return JSON.toJSONString(result);
     }
 
@@ -147,6 +147,9 @@ public class StringKit {
                     break;
                 case "NAC":
                     result = "操作失败：无访问权限";
+                    break;
+                case "CR1":
+                    result = "操作失败：数据CODE已存在";
                     break;
                 default:
                     break;

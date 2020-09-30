@@ -10,6 +10,7 @@ import prism.akash.container.BaseData;
 import prism.akash.container.sqlEngine.sqlEngine;
 import prism.akash.tools.StringKit;
 import prism.akash.tools.annocation.Access;
+import prism.akash.tools.annocation.Schema;
 import prism.akash.tools.annocation.checked.AccessType;
 import prism.akash.tools.reids.RedisTool;
 
@@ -26,8 +27,9 @@ import java.util.stream.Collectors;
  *                               TODO  「 StringEscapeUtils.escapeSql() 」
  * @author HaoNan Yan
  */
-@Service("baseSchema")
+@Service
 @Transactional(readOnly = true)
+@Schema(code = "base", name = "系统基础方法")
 public class BaseSchema implements Serializable {
 
     @Autowired
@@ -314,7 +316,7 @@ public class BaseSchema implements Serializable {
         //通过redis获取缓存数据
         List<BaseData> tableList = redisTool.getList("core:table:list", null, null);
         if (tableList.size() == 0) {
-            tableList = baseApi.selectBase(new sqlEngine().setSelect(" select id,code,name from cr_tables where state = 0 "));
+            tableList = baseApi.selectBase(new sqlEngine().setSelect(" select id,code,name,version from cr_tables where state = 0 "));
             redisTool.set("core:table:list", tableList, -1);
         }
         return tableList;
@@ -329,11 +331,25 @@ public class BaseSchema implements Serializable {
      */
     protected String getTableIdByCode(String tableCode) {
         //通过redis获取缓存数据
+        BaseData tableData = getTableDataByCode(tableCode);
+        return tableData.getString("id");
+    }
+
+
+    /**
+     * 根据table的code值获取数据表对象
+     * TODO 仅提供于Schema层使用
+     *
+     * @param tableCode 数据表唯一码
+     * @return
+     */
+    protected BaseData getTableDataByCode(String tableCode) {
+        //通过redis获取缓存数据
         List<BaseData> tableList = getTableList();
         //通过lambda表达式获取指定数据
         if (tableList != null && tableList.size() > 0) {
             List<BaseData> result = tableList.stream().filter(t -> t.get("code").equals(tableCode)).collect(Collectors.toList());
-            return result.size() > 0 ? JSON.toJSONString(result.get(0).getString("id")) : null;
+            return result.size() > 0 ? result.get(0) : null;
         } else {
             return null;
         }

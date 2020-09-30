@@ -98,13 +98,5 @@ public interface BaseApi {
      */
     int execute(sqlEngine sqlEngine);
 
-    /**
-     * TODO :  主要用于tableArray及Columns表的初始化
-     * @param table    表名#备注
-     * @param executeData
-     * @return
-     */
-    int insertInitData(String table,String executeData);
-
     //TODO 内部接口 End
 }

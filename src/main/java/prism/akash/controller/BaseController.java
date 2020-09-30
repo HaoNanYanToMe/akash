@@ -78,20 +78,4 @@ public class BaseController extends BaseProxy implements Serializable {
             return StringKit.formateSchemaData(invokeMethod(schemaName, methodName, id, execute));
         }
     }
-
-
-    /**
-     * 手动初始化基本数据信息
-     * @param table
-     * @param data
-     * @return
-     */
-//    @RequestMapping(value = "/initData",
-//            method = RequestMethod.POST,
-//            produces = "application/json;charset=UTF-8")
-//    public String initData(String table, String data) {
-//        return JSON.toJSONString(baseApi.insertInitData(table,data));
-//    }
-
-
 }
