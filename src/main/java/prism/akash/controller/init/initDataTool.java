@@ -9,11 +9,12 @@ import org.springframework.stereotype.Component;
 import prism.akash.container.BaseData;
 import prism.akash.schema.BaseSchema;
 import prism.akash.schema.core.coreBaseSchema;
+import prism.akash.tools.scannerSchema.ScannerSchemaTool;
 
 import javax.annotation.PostConstruct;
 import java.io.Serializable;
-import java.lang.annotation.Annotation;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 系统基础数据初始化
@@ -49,7 +50,16 @@ public class initDataTool implements Serializable {
     @Autowired
     coreBaseSchema coreBaseSchema;
 
+    @Autowired
+    ScannerSchemaTool scannerSchemaTool;
 
+    @Autowired
+    BaseSchema baseSchema;
+
+    /**
+     * 初始化数据库表
+     * *根据配置指定检查
+     */
     @PostConstruct
     public void init() {
         //判断是否需要对基础数据进行初始化
@@ -64,9 +74,43 @@ public class initDataTool implements Serializable {
         }
     }
 
-//    private String initSchema(){
-//        Annotation[] allAnnos = BaseSchema.class.getAnnotations();
-//    }
+    /**
+     * 初始化系统逻辑类
+     * * 每次启动时检查
+     */
+    @PostConstruct
+    public void initSchema() {
+        List<String> schemaList = scannerSchemaTool.getSystemSchema();
+        for (String schema : schemaList) {
+            String[] schemaNode = schema.split(",");
+
+            //1.如果当前Schema不存在
+            String tid = baseSchema.getTableIdByCode("sc_" + schemaNode[0]);
+            if (tid.isEmpty()) {
+                //2.当前逻辑类需要初始化
+                if (schemaNode[2].equals("true")) {
+                    //3.执行新增
+                    BaseData insert = new BaseData();
+                    insert.put("code", "sc_" + schemaNode[0]);
+                    insert.put("name", schemaNode[1]);
+                    baseSchema.insertData(baseSchema.pottingData("cr_tables", insert));
+                    logger.info("新增SCHEMA:" + schemaNode[0]);
+                }
+            } else {
+                //如果当前Schema存在
+                //4.当前逻辑类不需要初始化
+                if (schemaNode[2].equals("false")) {
+                    BaseData del = new BaseData();
+                    del.put("id", tid);
+                    del.put("del_submit", "1");
+                    //5.执行删除
+                    baseSchema.deleteData(baseSchema.pottingData("cr_tables", del));
+                    logger.info("移除SCHEMA:" + schemaNode[0]);
+                }
+            }
+
+        }
+    }
 
     /**
      * 内部方法：用于获取系统配置的同步属性值

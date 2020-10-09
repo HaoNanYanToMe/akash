@@ -1,7 +1,8 @@
 package prism.akash.tools.scannerSchema;
 
+import com.alibaba.fastjson.JSON;
 import org.springframework.core.annotation.AnnotationUtils;
-import prism.akash.tools.annocation.Access;
+import org.springframework.stereotype.Component;
 import prism.akash.tools.annocation.Schema;
 
 import java.io.File;
@@ -19,6 +20,7 @@ import java.util.jar.JarFile;
 /**
  * 扫描Schema包下所有类文件
  */
+@Component
 public class ScannerSchemaTool {
 
     private Set<Class<?>> classList;
@@ -26,11 +28,9 @@ public class ScannerSchemaTool {
     /**
      * 从包package中获取所有的Class
      *
-     * @param pack
      * @return
      */
-    private Set<Class<?>> getClasses(String pack) {
-
+    private Set<Class<?>> getClasses() {
         // 第一个class类的集合
         Set<Class<?>> classes = new LinkedHashSet<Class<?>>();
         // 是否循环迭代
@@ -168,19 +168,21 @@ public class ScannerSchemaTool {
      *
      * @return
      */
-    public Map<String, String> getSystemSchema() {
-        Map<String, String> result = new ConcurrentHashMap<>();
-        Object[] ts = classList.toArray();
+    public List<String> getSystemSchema() {
+        List<String> result = new ArrayList<>();
+        Object[] ts = getClasses().toArray();
         for (Object t : ts) {
             Class<?> tt = (Class<?>) t;
             //判断当前文件是否为非临时文件
             if (tt.getName().indexOf("$") == -1) {
                 StringBuffer sb = new StringBuffer();
                 Schema schema = AnnotationUtils.findAnnotation(tt, Schema.class);
-                sb.append(AnnotationUtils.getValue(schema, "name"))
+                sb.append((String) AnnotationUtils.getValue(schema, "code"))
+                        .append(",")
+                        .append(AnnotationUtils.getValue(schema, "name"))
                         .append(",")
                         .append(AnnotationUtils.getValue(schema, "init"));
-                result.put((String) AnnotationUtils.getValue(schema, "code"), sb.toString());
+                result.add(sb.toString());
             }
         }
         return result;

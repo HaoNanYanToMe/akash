@@ -273,6 +273,7 @@ public class BaseSchema implements Serializable {
      *                    executeData：  所需参数 ： 请根据当前引擎实际情况进行传参
      *                    {
      *                    *id :    待删除数据ID
+     *                    del_submit : 暴力删除标识,不为null时可以删除任意类型数据
      *                    }
      *                    }
      * @return 0 - 失败（数据锁定:is_lock状态）
@@ -329,10 +330,10 @@ public class BaseSchema implements Serializable {
      * @param tableCode 数据表唯一码
      * @return
      */
-    protected String getTableIdByCode(String tableCode) {
+    public String getTableIdByCode(String tableCode) {
         //通过redis获取缓存数据
         BaseData tableData = getTableDataByCode(tableCode);
-        return tableData.getString("id");
+        return tableData == null ? "" : tableData.getString("id");
     }
 
 
@@ -376,7 +377,7 @@ public class BaseSchema implements Serializable {
      * @param executeData
      * @return
      */
-    protected BaseData enCapsulationData(String tableName, BaseData executeData) {
+    public BaseData enCapsulationData(String tableName, BaseData executeData) {
         BaseData data = StringKit.parseBaseData(executeData.getString("executeData"));
         return pottingData(tableName, data);
     }
@@ -398,7 +399,7 @@ public class BaseSchema implements Serializable {
      * @param executeData
      * @return
      */
-    protected BaseData pottingData(String tableName, BaseData executeData) {
+    public BaseData pottingData(String tableName, BaseData executeData) {
         BaseData execute = new BaseData();
         execute.put("id", tableName.isEmpty() || tableName == null ? "" : getTableIdByCode(tableName));
         execute.put("executeData", JSON.toJSONString(executeData));

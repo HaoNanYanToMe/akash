@@ -135,7 +135,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
         String code = redisTool.get("core:table:code:id:" + cacheId);
         if (code.isEmpty() || code == null) {
             BaseData select = new BaseData();
-            select.put("select", "select code from cr_tables where state = 0 and id = " + StringEscapeUtils.escapeSql(id));
+            select.put("select", "select code from cr_tables where state = 0 and id = '" + StringEscapeUtils.escapeSql(cacheId) + "'");
             List<BaseData> tables = baseInteraction.select(select);
             code = tables.size() > 0 ? tables.get(0).get("code") + "" : "";
             //持久化当前表code
@@ -156,7 +156,7 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
         List<BaseData> fieldList = redisTool.getList("core:field:list:id:" + cacheId, null, null);
         if (fieldList.size() == 0) {
             BaseData select = new BaseData();
-            select.put("select", "select code from cr_field where state = 0 and tid = " + StringEscapeUtils.escapeSql(id));
+            select.put("select", "select code from cr_field where state = 0 and tid = '" +  StringEscapeUtils.escapeSql(cacheId) + "'");
             fieldList = baseInteraction.select(select);
             //持久化当前表字段
             redisTool.set("core:field:list:id:" + cacheId, fieldList, -1);
@@ -309,7 +309,11 @@ public class BaseApiImpl extends BaseDataExtends implements BaseApi {
                 if(!(params.get("id")+"").isEmpty()){
                     BaseData bd = new BaseData();
                     //暴力删除仅允许删除非活跃数据（state状态为禁用，经过soft软删除的数据）
-                    String delete = "delete from " + tableCode + " where state = 1 and  id = " + JSON.toJSONString(StringEscapeUtils.escapeSql(params.get("id") + ""));
+                    String delete = "delete from " + tableCode + " where  id = " + JSON.toJSONString(StringEscapeUtils.escapeSql(params.get("id") + ""));
+                    //确认删除标识，不为空时可删除任意状态的数据
+                    if (params.get("del_submit") == null){
+                        delete += " and state = 1 ";
+                    }
                     //TODO system系统源数据在删除时需要追加is_lock条件
                     if (tableCode.split("_")[0].equals("sys")){
                         delete  +=  " and is_lock = 0 ";
